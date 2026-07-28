@@ -7,7 +7,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     const file = form.get('file') as File;
 
     if (!file) {
-      return NextResponse.json({ success: false, error: 'Aucun fichier fourni' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Aucun fichier fourni' },
+        { status: 400 }
+      );
     }
 
     const filename = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
@@ -16,9 +19,19 @@ export async function POST(request: Request): Promise<NextResponse> {
       access: 'public',
     });
 
-    return NextResponse.json({ success: true, url: blob.url });
+    return NextResponse.json(
+      { success: true, url: blob.url },
+      {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        },
+      }
+    );
   } catch (err) {
     console.error('Erreur lors de l\'upload :', err);
-    return NextResponse.json({ success: false, error: 'Erreur serveur lors de l\'upload' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Erreur serveur lors de l\'upload' },
+      { status: 500 }
+    );
   }
 }
