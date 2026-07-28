@@ -1,0 +1,1 @@
+{ "functions": { "app/api/upload/route.ts": { "maxDuration": 60 } }, "maxBodySize": "100mb" }
