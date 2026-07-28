@@ -1,29 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { put } from '@vercel/blob';
+import { NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const form = await request.formData();
+    const file = form.get('file') as File;
 
     if (!file) {
-      return NextResponse.json({ success: false, error: "Aucun fichier fourni" }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Aucun fichier fourni' }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const filename = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    const filename = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
 
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    const blob = await put(filename, file, {
+      access: 'public',
+    });
 
-    fs.writeFileSync(path.join(uploadDir, filename), buffer);
-
-    return NextResponse.json({ success: true, url: `/uploads/${filename}` });
+    return NextResponse.json({ success: true, url: blob.url });
   } catch (err) {
-    console.error("Erreur lors de l'upload :", err);
-    return NextResponse.json({ success: false, error: "Erreur serveur lors de l'upload" }, { status: 500 });
+    console.error('Erreur lors de l\'upload :', err);
+    return NextResponse.json({ success: false, error: 'Erreur serveur lors de l\'upload' }, { status: 500 });
   }
 }
