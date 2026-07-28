@@ -1,4 +1,3 @@
-import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -13,24 +12,38 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const filename = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+    const sizeLimit = 100 * 1024 * 1024; // 100 Mo
+    if (file.size > sizeLimit) {
+      return NextResponse.json(
+        { success: false, error: 'Fichier trop volumineux (max 100 Mo)' },
+        { status: 400 }
+      );
+    }
 
-    const blob = await put(filename, file, {
-      access: 'public',
-    });
-
-    return NextResponse.json(
-      { success: true, url: blob.url },
+    // Utiliser l'URL d'upload client Vercel Blob
+    const response = await fetch(
+      `https://blob.vercel-storage.com/upload?filename=${encodeURIComponent(file.name)}`,
       {
+        method: 'PUT',
         headers: {
-          'Access-Control-Allow-Origin': '*',
+          'Authorization': `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+          'Content-Type': file.type,
+          'Content-Length': file.size.toString(),
         },
+        body: file,
       }
     );
+
+    if (!response.ok) {
+      throw new Error(`Erreur Blob: ${response.status}`);
+    }
+
+    const blob = await response.json();
+    return NextResponse.json({ success: true, url: blob.url });
   } catch (err) {
-    console.error('Erreur lors de l\'upload :', err);
+    console.error('Erreur upload:', err);
     return NextResponse.json(
-      { success: false, error: 'Erreur serveur lors de l\'upload' },
+      { success: false, error: 'Erreur serveur' },
       { status: 500 }
     );
   }
