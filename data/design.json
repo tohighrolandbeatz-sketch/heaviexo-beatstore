@@ -1,0 +1,98 @@
+{
+  "version": 2,
+  "branding": {
+    "siteName": "HEAVIEX'O BEATS",
+    "subtitle": "Future Sound Architecture",
+    "logoUrl": "/LOGO-BEAT.png",
+    "footerLogoUrl": "/LOGO-BEAT.png",
+    "faviconUrl": "/favicon.ico",
+    "footerText": "Studio de production musicale haute définition. Beats originaux, Sound Kits professionnels & ingénierie sonore sur-mesure.",
+    "copyright": "© 2026 Alter Ego Group. Tous droits réservés.",
+    "socials": {
+      "instagram": "https://www.instagram.com/heaviexobeats?igsh=Nnl0azh6YjV5MmFi&utm_source=qr",
+      "youtube": "https://youtube.com/@heaviexo?si=FdszUQJe59fv_fmT",
+      "telegram": "https://t.me/kakouanassi"
+    },
+    "whatsapp": "2290156646409",
+    "email": "contact@heaviexobeats.com"
+  },
+  "header": {
+    "layout": "default",
+    "showSearch": true,
+    "showCart": true,
+    "sticky": true,
+    "glassEffect": true,
+    "navLinks": [
+      {
+        "label": "Beats",
+        "href": "#beats"
+      },
+      {
+        "label": "Sound Kits",
+        "href": "#kits"
+      },
+      {
+        "label": "Licences",
+        "href": "#licenses"
+      },
+      {
+        "label": "Contact",
+        "href": "#contact"
+      }
+    ]
+  },
+  "footer": {
+    "style": "detailed",
+    "showNewsletter": true,
+    "columnsCount": 3,
+    "socialIcons": true,
+    "customHtml": ""
+  },
+  "colors": {
+    "primary": "#10b981",
+    "secondary": "#047857",
+    "accent": "#34d399",
+    "background": "#000000",
+    "cardBackground": "#09090b",
+    "buttonBackground": "#10b981",
+    "buttonHover": "#059669",
+    "priceColor": "#34d399",
+    "textColor": "#ffffff",
+    "iconColor": "#10b981",
+    "waveformColor": "#10b981"
+  },
+  "interface": {
+    "borderRadius": 24,
+    "blur": 20,
+    "shadows": 30,
+    "spacing": 24,
+    "maxWidth": 1280,
+    "opacity": 0.95
+  },
+  "spotify": {
+    "mainEmbedUrl": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M",
+    "projects": []
+  },
+  "artists": [
+    "Guen",
+    "Amron",
+    "Wedy",
+    "Kiko",
+    "Ghetto Mike",
+    "Mic Flammez",
+    "Speezy",
+    "Kollins",
+    "Prince Mo",
+    "Cyanogène",
+    "CCC",
+    "Blaaz",
+    "Stanley Enow",
+    "Maalox",
+    "Dove'N D",
+    "Biz Ice",
+    "kings",
+    "Sonya Blade",
+    "Jon Dho"
+  ],
+  "theme": "dark"
+}

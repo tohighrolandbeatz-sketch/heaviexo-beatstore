@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "branding": {
+    "siteName": "HEAVIEX'O BEATS",
+    "subtitle": "Future Sound Architecture",
+    "logoUrl": "/LOGO-BEAT.png",
+    "footerLogoUrl": "/LOGO-BEAT.png",
+    "faviconUrl": "/favicon.ico",
+    "footerText": "Studio de production musicale haute définition. Beats originaux, Sound Kits professionnels & ingénierie sonore sur-mesure.",
+    "copyright": "© 2026 HEAVIEXO BEATS. Tous droits réservés.",
+    "socials": {
+      "instagram": "https://instagram.com",
+      "youtube": "https://youtube.com",
+      "telegram": "https://t.me"
+    },
+    "whatsapp": "2290156646409",
+    "email": "contact@heaviexobeats.com"
+  },
+  "colors": {
+    "primary": "#1db954",
+    "secondary": "#121212",
+    "accent": "#1ed760",
+    "background": "#121212",
+    "cardBackground": "#181818",
+    "buttonBackground": "#1db954",
+    "buttonHover": "#1ed760",
+    "priceColor": "#1ed760",
+    "textColor": "#ffffff",
+    "iconColor": "#1db954",
+    "waveformColor": "#1db954"
+  },
+  "interface": {
+    "borderRadius": 24,
+    "blur": 20,
+    "shadows": 30,
+    "spacing": 24,
+    "maxWidth": 1280,
+    "cardWidth": "100%",
+    "opacity": 0.95,
+    "borderStyle": "1px solid rgba(255, 255, 255, 0.1)"
+  },
+  "hero": {
+    "bgImage": "",
+    "bgVideo": "",
+    "height": "500px",
+    "gradient": "linear-gradient(to bottom, #000, #111)",
+    "alignment": "center",
+    "titleSize": "4rem",
+    "subtitleSize": "1.2rem",
+    "buttonRadius": 16,
+    "buttonColor": "#10b981",
+    "buttonTextColor": "#000000",
+    "overlayColor": "#000000",
+    "overlayOpacity": 0.6,
+    "overlayBlur": 0,
+    "overlayGradient": true,
+    "title": "Chaque beat raconte une histoire.",
+    "subtitle": "Productions cinématographiques, dark trap et mélodies sur-mesure pour artistes exigeants.",
+    "buttonText": "Explorer le Catalogue"
+  },
+  "beatCards": {
+    "style": "modern",
+    "borderRadius": 16,
+    "shadow": "lg",
+    "hoverGlow": true,
+    "imageSize": 64,
+    "textSize": "sm",
+    "coverRatio": "1/1",
+    "coverZoom": true,
+    "coverBorderRadius": 12,
+    "waveformHeight": 32,
+    "waveformAnimated": true,
+    "pricePosition": "right",
+    "licenseStyle": "button",
+    "favoriteButton": true,
+    "showProducer": true,
+    "showDuration": true,
+    "showGenre": true,
+    "showLicenses": true,
+    "showBpm": true,
+    "showKey": true
+  },
+  "player": {
+    "position": "bottom",
+    "size": "full",
+    "sticky": true,
+    "glass": true,
+    "showArtwork": true,
+    "showRemainingTime": true,
+    "showFavorite": true,
+    "showRepeat": false,
+    "showShuffle": false,
+    "waveformStyle": "bars",
+    "waveformAnimation": true,
+    "progressHeight": 4,
+    "showVolume": true
+  },
+  "shop": {
+    "buyButtonText": "Licence",
+    "cartButtonText": "Ajouter au Panier",
+    "badgeStyle": "pill"
+  },
+  "animations": {
+    "duration": 0.3,
+    "speed": "normal",
+    "hoverScale": 1.05,
+    "glowEffect": true,
+    "cursorEffects": false
+  },
+  "theme": "dark"
+}
