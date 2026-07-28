@@ -98,8 +98,6 @@ export default function AdminDashboard({
   const [newPrice, setNewPrice] = useState(29.99);
   const [newCover, setNewCover] = useState("");
   const [newAudio, setNewAudio] = useState("");
-  const [uploadingBeatImage, setUploadingBeatImage] = useState(false);
-  const [uploadingBeatAudio, setUploadingBeatAudio] = useState(false);
 
   // États Sound Kits
   const [kitTitle, setKitTitle] = useState("");
@@ -110,8 +108,65 @@ export default function AdminDashboard({
   const [kitCount, setKitCount] = useState("100+ Samples WAV");
   const [kitFileSize, setKitFileSize] = useState("300 MB");
   const [kitDesc, setKitDesc] = useState("");
-  const [uploadingKitImage, setUploadingKitImage] = useState(false);
-  const [uploadingKitFile, setUploadingKitFile] = useState(false);
+
+  // ==========================================
+  // SYSTÈME DE PROGRESSION AVANCÉ PAR UPLOAD
+  // ==========================================
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: { progress: number; fileName: string; status: "uploading" | "success" | "error" } }>({});
+
+  const uploadFileWithProgress = (file: File, key: string, onSuccess: (url: string) => void) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploadProgress(prev => ({
+      ...prev,
+      [key]: { progress: 0, fileName: file.name, status: "uploading" }
+    }));
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/upload", true);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded * 100) / event.total);
+        setUploadProgress(prev => ({
+          ...prev,
+          [key]: { ...prev[key], progress: percentComplete }
+        }));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data.success) {
+            setUploadProgress(prev => ({
+              ...prev,
+              [key]: { progress: 100, fileName: file.name, status: "success" }
+            }));
+            onSuccess(data.url);
+            triggerSaveAlert(`Fichier "${file.name}" uploadé avec succès !`);
+          } else {
+            throw new Error(data.error || "Erreur serveur");
+          }
+        } catch (e) {
+          setUploadProgress(prev => ({ ...prev, [key]: { ...prev[key], status: "error" } }));
+          alert("Erreur lors de l'analyse de la réponse d'upload.");
+        }
+      } else {
+        setUploadProgress(prev => ({ ...prev, [key]: { ...prev[key], status: "error" } }));
+        alert("Erreur réseau lors de l'upload.");
+      }
+    };
+
+    xhr.onerror = () => {
+      setUploadProgress(prev => ({ ...prev, [key]: { ...prev[key], status: "error" } }));
+      alert("Erreur de connexion lors de l'upload.");
+    };
+
+    xhr.send(formData);
+  };
 
   // État Design System complet (contient aussi Spotify + réseaux sociaux + footer)
   const [design, setDesign] = useState<any>(null);
@@ -200,78 +255,6 @@ export default function AdminDashboard({
   ]);
   const [newPromoCode, setNewPromoCode] = useState("");
   const [newPromoDiscount, setNewPromoDiscount] = useState("");
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "beat" | "kit") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (type === "beat") setUploadingBeatImage(true);
-    else setUploadingKitImage(true);
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.success) {
-        if (type === "beat") setNewCover(data.url);
-        else setKitCover(data.url);
-        triggerSaveAlert("Image uploadée avec succès !");
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      if (type === "beat") setUploadingBeatImage(false);
-      else setUploadingKitImage(false);
-    }
-  };
-
-  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingBeatAudio(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.success) {
-        setNewAudio(data.url);
-        triggerSaveAlert("Fichier audio uploadé avec succès !");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Erreur lors de l'upload audio.");
-    } finally {
-      setUploadingBeatAudio(false);
-    }
-  };
-
-  const handleKitFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingKitFile(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.success) {
-        setKitFileUrl(data.url);
-        triggerSaveAlert("Archive Sound Kit uploadée avec succès !");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Erreur lors de l'upload du kit.");
-    } finally {
-      setUploadingKitFile(false);
-    }
-  };
 
   const handleAddGenre = (e: React.FormEvent) => {
     e.preventDefault();
@@ -452,6 +435,33 @@ export default function AdminDashboard({
   const totalKitsCount = kitsList?.length || 0;
   const estimatedCatalogValue = beatsList?.reduce((acc, b) => acc + (b.price || 0), 0).toFixed(2) || "0.00";
 
+  // Composant réutilisable pour afficher la barre de progression d'un upload
+  const renderUploadProgressIndicator = (uploadKey: string) => {
+    const info = uploadProgress[uploadKey];
+    if (!info) return null;
+
+    return (
+      <div className="mt-2 space-y-1 bg-[#161311] border border-white/10 p-3 rounded-xl">
+        <div className="flex justify-between text-xs">
+          <span className="font-mono text-[#F4F0EB] truncate max-w-[220px]" title={info.fileName}>
+            📄 {info.fileName}
+          </span>
+          <span className="font-bold">
+            {info.status === "uploading" && `${info.progress}%`}
+            {info.status === "success" && <strong className="text-green-400">Terminé ✓</strong>}
+            {info.status === "error" && <strong className="text-red-400">Échec ❌</strong>}
+          </span>
+        </div>
+        <div className="w-full bg-[#29201C] h-2 rounded-full overflow-hidden">
+          <div 
+            className={`h-full transition-all duration-300 ${info.status === "success" ? "bg-green-500" : info.status === "error" ? "bg-red-500" : "bg-[#C66B3D]"}`}
+            style={{ width: `${info.progress}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#161311] text-[#F4F0EB] px-4 md:px-8 py-24 space-y-8 font-sans relative selection:bg-[#C66B3D] selection:text-white">
       <AnimatePresence>
@@ -596,24 +606,43 @@ export default function AdminDashboard({
                     <div className="flex items-center gap-2">
                       <label className="flex-1 bg-[#1C1714] hover:bg-[#221B17] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-[#C2B9B0] flex items-center justify-center space-x-2 cursor-pointer transition-colors">
                         <Upload className="w-4 h-4 text-[#C66B3D]" />
-                        <span>{uploadingBeatImage ? "Upload..." : newCover ? "Image OK ✓" : "Choisir image"}</span>
-                        <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, "beat")} className="hidden" />
+                        <span>{newCover ? "Changer image ✓" : "Choisir image"}</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) uploadFileWithProgress(file, "beatCover", (url) => setNewCover(url));
+                          }} 
+                          className="hidden" 
+                        />
                       </label>
                       {newCover && <img src={newCover} alt="Preview" className="w-10 h-10 rounded-lg object-cover border border-[#C66B3D]/50" />}
                     </div>
+                    {renderUploadProgressIndicator("beatCover")}
                   </div>
                 </div>
+
                 <div>
-                  <label className="text-xs font-semibold text-[#C2B9B0] block mb-1.5">Fichier Audio MP3 (Uploader)</label>
+                  <label className="text-xs font-semibold text-[#C2B9B0] block mb-1.5">Fichier Audio MP3 / WAV (Uploader)</label>
                   <div className="flex items-center gap-2">
                     <label className="flex-1 bg-[#1C1714] hover:bg-[#221B17] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-[#C2B9B0] flex items-center justify-center space-x-2 cursor-pointer transition-colors">
                       <FileAudio className="w-4 h-4 text-[#C66B3D]" />
-                      <span>{uploadingBeatAudio ? "Upload en cours..." : newAudio ? "Audio MP3 OK ✓" : "Choisir un fichier MP3"}</span>
-                      <input type="file" accept="audio/*" onChange={handleAudioUpload} className="hidden" />
+                      <span>{newAudio ? "Changer l'audio ✓" : "Choisir un fichier Audio"}</span>
+                      <input 
+                        type="file" 
+                        accept="audio/*" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadFileWithProgress(file, "beatAudio", (url) => setNewAudio(url));
+                        }} 
+                        className="hidden" 
+                      />
                     </label>
-                    {newAudio && <span className="text-[10px] text-[#C66B3D] font-mono">Chargé ✓</span>}
                   </div>
+                  {renderUploadProgressIndicator("beatAudio")}
                 </div>
+
                 <button type="submit" className="w-full bg-[#C66B3D] hover:bg-[#D97746] text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-[#C66B3D]/30">
                   {editingBeatId ? "Mettre à jour le Beat" : "Publier sur le Store"}
                 </button>
@@ -691,24 +720,43 @@ export default function AdminDashboard({
                     <div className="flex items-center gap-2">
                       <label className="flex-1 bg-[#1C1714] hover:bg-[#221B17] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-[#C2B9B0] flex items-center justify-center space-x-2 cursor-pointer transition-colors">
                         <Upload className="w-4 h-4 text-[#C66B3D]" />
-                        <span>{uploadingKitImage ? "Upload..." : kitCover ? "Image OK ✓" : "Choisir image"}</span>
-                        <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, "kit")} className="hidden" />
+                        <span>{kitCover ? "Image OK ✓" : "Choisir image"}</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) uploadFileWithProgress(file, "kitCover", (url) => setKitCover(url));
+                          }} 
+                          className="hidden" 
+                        />
                       </label>
                       {kitCover && <img src={kitCover} alt="Preview" className="w-10 h-10 rounded-lg object-cover border border-[#C66B3D]/50" />}
                     </div>
+                    {renderUploadProgressIndicator("kitCover")}
                   </div>
                 </div>
+
                 <div>
                   <label className="text-xs font-semibold text-[#C2B9B0] block mb-1.5">Fichier Archive du Kit (ZIP / RAR - Uploader)</label>
                   <div className="flex items-center gap-2">
                     <label className="flex-1 bg-[#1C1714] hover:bg-[#221B17] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-[#C2B9B0] flex items-center justify-center space-x-2 cursor-pointer transition-colors">
                       <FolderArchive className="w-4 h-4 text-[#C66B3D]" />
-                      <span>{uploadingKitFile ? "Upload en cours..." : kitFileUrl ? "Archive ZIP OK ✓" : "Choisir le fichier ZIP / RAR"}</span>
-                      <input type="file" accept=".zip,.rar,.7z" onChange={handleKitFileUpload} className="hidden" />
+                      <span>{kitFileUrl ? "Archive ZIP OK ✓" : "Choisir le fichier ZIP / RAR"}</span>
+                      <input 
+                        type="file" 
+                        accept=".zip,.rar,.7z" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadFileWithProgress(file, "kitFile", (url) => setKitFileUrl(url));
+                        }} 
+                        className="hidden" 
+                      />
                     </label>
-                    {kitFileUrl && <span className="text-[10px] text-[#C66B3D] font-mono">Prêt ✓</span>}
                   </div>
+                  {renderUploadProgressIndicator("kitFile")}
                 </div>
+
                 <div>
                   <label className="text-xs font-semibold text-[#C2B9B0] block mb-1.5">Description</label>
                   <textarea rows={2} value={kitDesc} onChange={(e) => setKitDesc(e.target.value)} className="w-full bg-[#1C1714] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-[#F4F0EB] focus:outline-none focus:border-[#C66B3D]" />
