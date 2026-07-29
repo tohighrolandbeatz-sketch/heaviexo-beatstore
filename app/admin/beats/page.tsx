@@ -296,16 +296,18 @@ export default function AdminBeatsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '10px', color: '#888', marginBottom: '8px', textTransform: 'uppercase' }}>Image Cover (Uploader)</label>
-            <div style={{ border: '1px dashed #26221f', borderRadius: '8px', padding: '15px', textAlign: 'center', background: '#0f0e0d', color: '#888', cursor: 'pointer', fontSize: '12px' }}>
+            <label style={{ border: '1px dashed #26221f', borderRadius: '8px', padding: '15px', textAlign: 'center', background: '#0f0e0d', color: '#888', cursor: 'pointer', fontSize: '12px', display: 'block' }}>
               📁 Choisir image
-            </div>
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => console.log('Image:', e.target.files?.[0])} />
+            </label>
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '10px', color: '#888', marginBottom: '8px', textTransform: 'uppercase' }}>Fichier Audio MP3 / WAV (Uploader)</label>
-            <div style={{ border: '1px dashed #26221f', borderRadius: '8px', padding: '15px', textAlign: 'center', background: '#0f0e0d', color: '#888', cursor: 'pointer', fontSize: '12px', marginBottom: '10px' }}>
+            <label style={{ border: '1px dashed #26221f', borderRadius: '8px', padding: '15px', textAlign: 'center', background: '#0f0e0d', color: '#888', cursor: 'pointer', fontSize: '12px', display: 'block', marginBottom: '10px' }}>
               🎧 Choisir un fichier Audio
-            </div>
+              <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={(e) => console.log('Audio:', e.target.files?.[0])} />
+            </label>
             {/* Champ URL de secours optionnel */}
             <input
               type="text"

@@ -155,17 +155,19 @@ export default function AdminKitsPage() {
 
           <div>
             <label style={{ display: 'block', fontSize: '10px', color: '#888', marginBottom: '8px', textTransform: 'uppercase' }}>Image Cover</label>
-            <div style={{ border: '1px dashed #26221f', borderRadius: '8px', padding: '11px', textAlign: 'center', background: '#0f0e0d', color: '#888', cursor: 'pointer', fontSize: '12px' }}>
+            <label style={{ border: '1px dashed #26221f', borderRadius: '8px', padding: '11px', textAlign: 'center', background: '#0f0e0d', color: '#888', cursor: 'pointer', fontSize: '12px', display: 'block' }}>
               📁 Choisir image
-            </div>
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => console.log('Image:', e.target.files?.[0])} />
+            </label>
           </div>
         </div>
 
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', fontSize: '10px', color: '#888', marginBottom: '8px', textTransform: 'uppercase' }}>Fichier Archive du Kit (ZIP / RAR - Uploader)</label>
-          <div style={{ border: '1px dashed #26221f', borderRadius: '8px', padding: '15px', textAlign: 'center', background: '#0f0e0d', color: '#888', cursor: 'pointer', fontSize: '12px' }}>
+          <label style={{ border: '1px dashed #26221f', borderRadius: '8px', padding: '15px', textAlign: 'center', background: '#0f0e0d', color: '#888', cursor: 'pointer', fontSize: '12px', display: 'block' }}>
             📦 Choisir le fichier ZIP / RAR
-          </div>
+            <input type="file" accept=".zip,.rar" style={{ display: 'none' }} onChange={(e) => console.log('ZIP:', e.target.files?.[0])} />
+          </label>
         </div>
 
         <div style={{ marginBottom: '25px' }}>
