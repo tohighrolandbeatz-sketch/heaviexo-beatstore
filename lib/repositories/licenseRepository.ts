@@ -1,16 +1,6 @@
 import { db } from '@/lib/db';
-import { pgTable, text, real, timestamp } from 'drizzle-orm/pg-core';
+import { licenses } from '@/app/config/schema';
 import { eq, asc } from 'drizzle-orm';
-
-export const licenses = pgTable('licenses', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  price: real('price').notNull(),
-  description: text('description').notNull(),
-  features: text('features').default('[]').notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
 
 export type LicenseModel = {
   id: string;

@@ -103,3 +103,13 @@ export const downloads = pgTable('downloads', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
+// --- Licenses ---
+export const licenses = pgTable('licenses', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  price: real('price').notNull(),
+  description: text('description').notNull(),
+  features: text('features').default('[]').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
