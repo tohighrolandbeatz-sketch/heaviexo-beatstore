@@ -135,6 +135,37 @@ export class KitRepository {
     }
   }
 
+  static async update(id: string, data: Partial<Kit>): Promise<boolean> {
+    try {
+      const existing = await KitRepository.getById(id);
+      if (!existing) return false;
+
+      const updated = { ...existing, ...data };
+
+      await db
+        .update(kits)
+        .set({
+          title: updated.title,
+          slug: updated.slug ?? null,
+          category: updated.category ?? null,
+          description: updated.description ?? null,
+          cover: updated.cover ?? null,
+          previewMp3: updated.previewMp3 ?? null,
+          fileUrl: updated.fileUrl ?? null,
+          itemCount: updated.itemCount ?? null,
+          fileSize: updated.fileSize ?? null,
+          price: updated.price ?? null,
+          visible: updated.visible ?? 1,
+          updatedAt: new Date(),
+        })
+        .where(eq(kits.id, id));
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   static async exists(id: string): Promise<boolean> {
     const kit = await KitRepository.getById(id);
     return kit !== null;
