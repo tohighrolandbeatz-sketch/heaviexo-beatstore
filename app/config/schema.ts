@@ -45,6 +45,25 @@ export const licenses = pgTable('licenses', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+
+// ─── Kits ────────────────────────────────────────────────
+export const kits = pgTable('kits', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  slug: text('slug').unique(),
+  category: text('category'),
+  description: text('description'),
+  cover: text('cover'),
+  previewMp3: text('preview_mp3'),
+  fileUrl: text('file_url'),
+  itemCount: text('item_count'),
+  fileSize: text('file_size'),
+  price: real('price'),
+  visible: integer('visible').default(1),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 // ─── Sales ───────────────────────────────────────────────
 export const sales = pgTable('sales', {
   id: text('id').primaryKey(),
