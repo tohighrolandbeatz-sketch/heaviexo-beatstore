@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { KitRepository } from "@/lib/repositories/KitRepository";
+import { KitRepository } from "@/lib/repositories/kitRepository";
 
 // Empêche Next.js de mettre en cache la route GET
 export const dynamic = "force-dynamic";

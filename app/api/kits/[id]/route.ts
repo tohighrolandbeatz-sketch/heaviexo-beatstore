@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { KitRepository } from "@/lib/repositories/KitRepository";
+import { KitRepository } from "@/lib/repositories/kitRepository";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

@@ -1,275 +1,118 @@
-import Database from "better-sqlite3";
-import path from "path";
-import fs from "fs";
+import Database from 'better-sqlite3';
+import path from 'path';
+import fs from 'fs';
 
-const DATA_DIR = path.join(process.cwd(), "data");
-
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+const dbDir = path.join(process.cwd(), 'data');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
 }
 
-const DB_PATH = path.join(DATA_DIR, "beatstore.db");
+const dbPath = path.join(dbDir, 'beatstore.db');
+const db = new Database(dbPath);
 
-const db = new Database(DB_PATH);
+// Activation du mode WAL pour de meilleures performances
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON'); // Active le support des clés étrangères pour l'intégrité des relations
 
-// ======================================================
-// SQLite Optimisations
-// ======================================================
-
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
-db.pragma("synchronous = NORMAL");
-db.pragma("cache_size = 10000");
-db.pragma("temp_store = MEMORY");
-
-// ======================================================
-// Tables
-// ======================================================
-
+// Création de toutes les tables de l'architecture
 db.exec(`
-
-CREATE TABLE IF NOT EXISTS beats (
-
+  CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
-
-    title TEXT NOT NULL,
-    slug TEXT UNIQUE,
-
-    producer TEXT,
-
-    genre TEXT,
-    type TEXT,
-
-    bpm INTEGER,
-    musicalKey TEXT,
-
-    duration TEXT,
-
-    description TEXT,
-    tags TEXT,
-
-    cover TEXT,
-
-    previewMp3 TEXT,
-    wavFile TEXT,
-    stemsFile TEXT,
-    trackoutFile TEXT,
-
-    waveform TEXT,
-
-    basicPrice REAL,
-    wavPrice REAL,
-    stemsPrice REAL,
-    exclusivePrice REAL,
-
-    visible INTEGER DEFAULT 1,
-    featured INTEGER DEFAULT 0,
-    exclusive INTEGER DEFAULT 0,
-
-    plays INTEGER DEFAULT 0,
-    downloads INTEGER DEFAULT 0,
-    likes INTEGER DEFAULT 0,
-    cartAdds INTEGER DEFAULT 0,
-    purchases INTEGER DEFAULT 0,
-
-    seoTitle TEXT,
-    seoDescription TEXT,
-
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-
-);
-
-CREATE TABLE IF NOT EXISTS kits (
-
-    id TEXT PRIMARY KEY,
-
-    title TEXT NOT NULL,
-    slug TEXT UNIQUE,
-
-    category TEXT,
-
-    description TEXT,
-
-    cover TEXT,
-
-    previewMp3 TEXT,
-
-    fileUrl TEXT,
-
-    itemCount TEXT,
-
-    fileSize TEXT,
-
-    price REAL,
-
-    visible INTEGER DEFAULT 1,
-
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-
-);
-
-CREATE TABLE IF NOT EXISTS licenses (
-
-    id TEXT PRIMARY KEY,
-
     name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    role TEXT DEFAULT 'CUSTOMER',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
 
+  CREATE TABLE IF NOT EXISTS beats (
+    id TEXT PRIMARY KEY,
+    folder TEXT NOT NULL,
+    title TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    genre TEXT NOT NULL,
+    mood TEXT NOT NULL,
+    bpm INTEGER NOT NULL,
+    musicalKey TEXT NOT NULL,
+    price REAL NOT NULL,
+    cover TEXT NOT NULL,
+    previewMp3 TEXT NOT NULL,
+    masterWav TEXT,
+    stemsZip TEXT,
+    visible INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS licenses (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    price REAL NOT NULL,
     description TEXT,
+    features TEXT, -- Stocké en JSON ou texte séparé par des virgules
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
 
-    price REAL,
-
-    allowCommercial INTEGER DEFAULT 1,
-
-    allowStreaming INTEGER DEFAULT 1,
-
-    allowRadio INTEGER DEFAULT 1,
-
-    allowYoutube INTEGER DEFAULT 1,
-
-    allowMusicVideo INTEGER DEFAULT 0,
-
-    maxStreams INTEGER,
-
-    maxSales INTEGER,
-
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-
-);
-
-CREATE TABLE IF NOT EXISTS beat_licenses (
-
-    beatId TEXT,
-
-    licenseId TEXT,
-
-    customPrice REAL,
-
-    PRIMARY KEY (beatId, licenseId),
-
-    FOREIGN KEY (beatId) REFERENCES beats(id) ON DELETE CASCADE,
-
-    FOREIGN KEY (licenseId) REFERENCES licenses(id) ON DELETE CASCADE
-
-);
-
-CREATE TABLE IF NOT EXISTS comments (
-
+  CREATE TABLE IF NOT EXISTS sales (
     id TEXT PRIMARY KEY,
+    user_id TEXT,
+    beat_id TEXT NOT NULL,
+    license_id TEXT NOT NULL,
+    amount REAL NOT NULL,
+    stripe_session_id TEXT,
+    status TEXT DEFAULT 'PENDING',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (beat_id) REFERENCES beats(id) ON DELETE CASCADE,
+    FOREIGN KEY (license_id) REFERENCES licenses(id) ON DELETE CASCADE
+  );
 
-    beatId TEXT NOT NULL,
-
-    author TEXT,
-
-    rating INTEGER,
-
-    message TEXT,
-
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (beatId) REFERENCES beats(id) ON DELETE CASCADE
-
-);
-
-CREATE TABLE IF NOT EXISTS orders (
-
+  CREATE TABLE IF NOT EXISTS analytics (
     id TEXT PRIMARY KEY,
+    beat_id TEXT NOT NULL,
+    plays_count INTEGER DEFAULT 0,
+    cart_adds INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (beat_id) REFERENCES beats(id) ON DELETE CASCADE
+  );
 
-    customerName TEXT,
-
-    customerEmail TEXT,
-
-    customerPhone TEXT,
-
-    paymentMethod TEXT,
-
-    paymentReference TEXT,
-
-    currency TEXT,
-
-    items TEXT,
-
-    totalAmount REAL,
-
-    downloadLinks TEXT,
-
-    status TEXT,
-
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-    paidAt DATETIME
-
-);
-
-CREATE TABLE IF NOT EXISTS statistics (
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    date TEXT,
-
-    pageViews INTEGER DEFAULT 0,
-
-    beatPlays INTEGER DEFAULT 0,
-
-    downloads INTEGER DEFAULT 0,
-
-    cartAdds INTEGER DEFAULT 0,
-
-    purchases INTEGER DEFAULT 0
-
-);
-
--- Ajout de la table designs pour la configuration visuelle
-CREATE TABLE IF NOT EXISTS designs (
+  CREATE TABLE IF NOT EXISTS favorites (
     id TEXT PRIMARY KEY,
-    themeName TEXT,
-    primaryColor TEXT,
-    accentColor TEXT,
-    bannerUrl TEXT,
-    logoUrl TEXT,
-    customCss TEXT,
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+    user_id TEXT NOT NULL,
+    beat_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (beat_id) REFERENCES beats(id) ON DELETE CASCADE,
+    UNIQUE(user_id, beat_id)
+  );
 
-`);
+  CREATE TABLE IF NOT EXISTS comments (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    beat_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (beat_id) REFERENCES beats(id) ON DELETE CASCADE
+  );
 
-// ======================================================
-// Migrations (ajout de colonnes sur tables déjà existantes)
-// ======================================================
-
-const beatColumns = db.prepare("PRAGMA table_info(beats)").all() as { name: string }[];
-const hasMoodColumn = beatColumns.some((col) => col.name === "mood");
-if (!hasMoodColumn) {
-  db.exec("ALTER TABLE beats ADD COLUMN mood TEXT");
-}
-
-// ======================================================
-// Indexes
-// ======================================================
-
-db.exec(`
-
-CREATE INDEX IF NOT EXISTS idx_beats_title
-ON beats(title);
-
-CREATE INDEX IF NOT EXISTS idx_beats_slug
-ON beats(slug);
-
-CREATE INDEX IF NOT EXISTS idx_beats_visible
-ON beats(visible);
-
-CREATE INDEX IF NOT EXISTS idx_beats_featured
-ON beats(featured);
-
-CREATE INDEX IF NOT EXISTS idx_kits_category
-ON kits(category);
-
-CREATE INDEX IF NOT EXISTS idx_orders_status
-ON orders(status);
-
-CREATE INDEX IF NOT EXISTS idx_comments_beat
-ON comments(beatId);
-
+  CREATE TABLE IF NOT EXISTS downloads (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    beat_id TEXT NOT NULL,
+    sale_id TEXT,
+    ip_address TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (beat_id) REFERENCES beats(id) ON DELETE CASCADE,
+    FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE SET NULL
+  );
 `);
 
 export default db;

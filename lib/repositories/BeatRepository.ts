@@ -1,271 +1,141 @@
-import db from "@/lib/db";
+import db from '@/lib/db';
 
-export interface Beat {
+export type BeatModel = {
   id: string;
   title: string;
-  slug?: string;
-  producer?: string;
-  genre?: string;
-  type?: string;
-  bpm?: number;
-  musicalKey?: string;
-  mood?: string;
-  duration?: string;
-  description?: string;
-  tags?: string;
-  cover?: string;
-  previewMp3?: string;
-  wavFile?: string;
-  stemsFile?: string;
-  trackoutFile?: string;
-  waveform?: string;
-  basicPrice?: number;
-  wavPrice?: number;
-  stemsPrice?: number;
-  exclusivePrice?: number;
-  visible?: number;
-  featured?: number;
-  exclusive?: number;
-  plays?: number;
-  downloads?: number;
-  likes?: number;
-  cartAdds?: number;
-  purchases?: number;
-  seoTitle?: string;
-  seoDescription?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+  slug: string;
+  genre: string;
+  mood: string;
+  bpm: number;
+  musical_key: string;
+  description: string;
+  seo_tags: string;
+  price: number;
+  licenses_json: string;
+  cover_url?: string;
+  preview_url?: string;
+  master_url?: string;
+  stems_url?: string;
+  status: 'published' | 'draft' | 'archived';
+  created_at: string;
+};
 
-export class BeatRepository {
-  // ==========================================
-  // LECTURE
-  // ==========================================
-  static getAll(): Beat[] {
-    return db.prepare("SELECT * FROM beats ORDER BY createdAt DESC").all() as Beat[];
+class BeatRepository {
+  constructor() {
+    this.initTable();
   }
 
-  static getVisible(): Beat[] {
-    return db.prepare("SELECT * FROM beats WHERE visible = 1 ORDER BY createdAt DESC").all() as Beat[];
-  }
-
-  static getFeatured(): Beat[] {
-    return db.prepare("SELECT * FROM beats WHERE featured = 1 AND visible = 1 ORDER BY createdAt DESC").all() as Beat[];
-  }
-
-  static getById(id: string): Beat | undefined {
-    return db.prepare("SELECT * FROM beats WHERE id = ?").get(id) as Beat | undefined;
-  }
-
-  static getBySlug(slug: string): Beat | undefined {
-    return db.prepare("SELECT * FROM beats WHERE slug = ?").get(slug) as Beat | undefined;
-  }
-
-  static search(query: string): Beat[] {
-    const searchTerm = `%${query}%`;
-    return db.prepare(
-      "SELECT * FROM beats WHERE title LIKE ? OR genre LIKE ? OR producer LIKE ? OR tags LIKE ? ORDER BY createdAt DESC"
-    ).all(searchTerm, searchTerm, searchTerm, searchTerm) as Beat[];
-  }
-
-  static getByGenre(genre: string): Beat[] {
-    return db.prepare("SELECT * FROM beats WHERE genre = ? AND visible = 1 ORDER BY createdAt DESC").all(genre) as Beat[];
-  }
-
-  static getByProducer(producer: string): Beat[] {
-    return db.prepare("SELECT * FROM beats WHERE producer = ? AND visible = 1 ORDER BY createdAt DESC").all(producer) as Beat[];
-  }
-
-  // ==========================================
-  // CRÉATION & DUPLICATION
-  // ==========================================
-  static create(beat: Beat): void {
-    const stmt = db.prepare(`
-      INSERT INTO beats (
-        id, title, slug, producer, genre, type, bpm, musicalKey, mood, duration, 
-        description, tags, cover, previewMp3, wavFile, stemsFile, trackoutFile, 
-        waveform, basicPrice, wavPrice, stemsPrice, exclusivePrice, visible, 
-        featured, exclusive, seoTitle, seoDescription
-      ) VALUES (
-        @id, @title, @slug, @producer, @genre, @type, @bpm, @musicalKey, @mood, @duration, 
-        @description, @tags, @cover, @previewMp3, @wavFile, @stemsFile, @trackoutFile, 
-        @waveform, @basicPrice, @wavPrice, @stemsPrice, @exclusivePrice, @visible, 
-        @featured, @exclusive, @seoTitle, @seoDescription
+  private initTable() {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS beats (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        slug TEXT NOT NULL,
+        genre TEXT,
+        mood TEXT,
+        bpm INTEGER,
+        musical_key TEXT,
+        description TEXT,
+        seo_tags TEXT,
+        price REAL NOT NULL,
+        licenses_json TEXT,
+        cover_url TEXT,
+        preview_url TEXT,
+        master_url TEXT,
+        stems_url TEXT,
+        status TEXT DEFAULT 'draft',
+        created_at TEXT NOT NULL
       )
     `);
-    stmt.run(beat);
   }
 
-  static duplicate(id: string, newId: string, newSlug: string): Beat | null {
-    const original = this.getById(id);
-    if (!original) return null;
+  findAll(): BeatModel[] {
+    const tableInfo = db.prepare("PRAGMA table_info(beats)").all() as { name: string }[];
+    const hasCreatedAt = tableInfo.some(col => col.name === 'created_at');
 
-    const duplicated: Beat = {
-      ...original,
-      id: newId,
-      title: `${original.title} (Copy)`,
-      slug: newSlug,
-      plays: 0,
-      downloads: 0,
-      likes: 0,
-      cartAdds: 0,
-      purchases: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    if (!hasCreatedAt) {
+      db.exec("ALTER TABLE beats ADD COLUMN created_at TEXT DEFAULT ''");
+    }
 
-    this.create(duplicated);
-    return duplicated;
+    return db.prepare('SELECT * FROM beats ORDER BY rowid DESC').all() as BeatModel[];
   }
 
-  // ==========================================
-  // MISE À JOUR
-  // ==========================================
-  static update(id: string, beat: Partial<Beat>): void {
-    const fields = Object.keys(beat)
-      .map((key) => `${key} = @${key}`)
-      .join(", ");
-    
-    const stmt = db.prepare(`UPDATE beats SET ${fields}, updatedAt = CURRENT_TIMESTAMP WHERE id = @id`);
-    stmt.run({ ...beat, id });
+  findById(id: string): BeatModel | undefined {
+    return db.prepare('SELECT * FROM beats WHERE id = ?').get(id) as BeatModel | undefined;
   }
 
-  static updateVisibility(id: string, visible: number): void {
-    db.prepare("UPDATE beats SET visible = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?").run(visible, id);
+  create(data: Omit<BeatModel, 'created_at'>): BeatModel {
+    const createdAt = new Date().toISOString();
+    const stmt = db.prepare(`
+      INSERT INTO beats (
+        id, title, slug, genre, mood, bpm, musical_key, description, 
+        seo_tags, price, licenses_json, cover_url, preview_url, master_url, stems_url, status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      data.id,
+      data.title,
+      data.slug,
+      data.genre || '',
+      data.mood || '',
+      data.bpm || 0,
+      data.musical_key || '',
+      data.description || '',
+      data.seo_tags || '',
+      data.price,
+      data.licenses_json || '[]',
+      data.cover_url || null,
+      data.preview_url || null,
+      data.master_url || null,
+      data.stems_url || null,
+      data.status || 'draft',
+      createdAt
+    );
+
+    return { ...data, created_at: createdAt };
   }
 
-  static updateFeatured(id: string, featured: number): void {
-    db.prepare("UPDATE beats SET featured = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?").run(featured, id);
-  }
+  update(id: string, data: Partial<BeatModel>): BeatModel | undefined {
+    const existing = this.findById(id);
+    if (!existing) return undefined;
 
-  static updatePrices(id: string, prices: { basicPrice?: number; wavPrice?: number; stemsPrice?: number; exclusivePrice?: number }): void {
-    db.prepare(`
+    const updated = { ...existing, ...data };
+
+    const stmt = db.prepare(`
       UPDATE beats SET 
-        basicPrice = COALESCE(?, basicPrice), 
-        wavPrice = COALESCE(?, wavPrice), 
-        stemsPrice = COALESCE(?, stemsPrice), 
-        exclusivePrice = COALESCE(?, exclusivePrice),
-        updatedAt = CURRENT_TIMESTAMP 
+        title = ?, slug = ?, genre = ?, mood = ?, bpm = ?, musical_key = ?, 
+        description = ?, seo_tags = ?, price = ?, licenses_json = ?, 
+        cover_url = ?, preview_url = ?, master_url = ?, stems_url = ?, status = ?
       WHERE id = ?
-    `).run(prices.basicPrice, prices.wavPrice, prices.stemsPrice, prices.exclusivePrice, id);
+    `);
+
+    stmt.run(
+      updated.title,
+      updated.slug,
+      updated.genre,
+      updated.mood,
+      updated.bpm,
+      updated.musical_key,
+      updated.description,
+      updated.seo_tags,
+      updated.price,
+      updated.licenses_json,
+      updated.cover_url || null,
+      updated.preview_url || null,
+      updated.master_url || null,
+      updated.stems_url || null,
+      updated.status,
+      id
+    );
+
+    return updated;
   }
 
-  static updateFiles(id: string, files: { previewMp3?: string; wavFile?: string; stemsFile?: string; cover?: string }): void {
-    db.prepare(`
-      UPDATE beats SET 
-        previewMp3 = COALESCE(?, previewMp3), 
-        wavFile = COALESCE(?, wavFile), 
-        stemsFile = COALESCE(?, stemsFile), 
-        cover = COALESCE(?, cover),
-        updatedAt = CURRENT_TIMESTAMP 
-      WHERE id = ?
-    `).run(files.previewMp3, files.wavFile, files.stemsFile, files.cover, id);
-  }
-
-  // ==========================================
-  // OPÉRATIONS EN MASSE (BULK)
-  // ==========================================
-  static bulkUpdate(ids: string[], data: Partial<Beat>): void {
-    const transaction = db.transaction((beatIds: string[]) => {
-      for (const id of beatIds) {
-        this.update(id, data);
-      }
-    });
-    transaction(ids);
-  }
-
-  static bulkDelete(ids: string[]): void {
-    const placeholders = ids.map(() => "?").join(",");
-    db.prepare(`DELETE FROM beats WHERE id IN (${placeholders})`).run(...ids);
-  }
-
-  static bulkVisibility(ids: string[], visible: number): void {
-    const placeholders = ids.map(() => "?").join(",");
-    db.prepare(`UPDATE beats SET visible = ?, updatedAt = CURRENT_TIMESTAMP WHERE id IN (${placeholders})`).run(visible, ...ids);
-  }
-
-  // ==========================================
-  // SUPPRESSION
-  // ==========================================
-  static delete(id: string): void {
-    db.prepare("DELETE FROM beats WHERE id = ?").run(id);
-  }
-
-  // ==========================================
-  // STATISTIQUES & COMPTEURS
-  // ==========================================
-  static incrementPlays(id: string): void {
-    db.prepare("UPDATE beats SET plays = plays + 1 WHERE id = ?").run(id);
-  }
-
-  static incrementDownloads(id: string): void {
-    db.prepare("UPDATE beats SET downloads = downloads + 1 WHERE id = ?").run(id);
-  }
-
-  static incrementLikes(id: string): void {
-    db.prepare("UPDATE beats SET likes = likes + 1 WHERE id = ?").run(id);
-  }
-
-  static incrementCartAdds(id: string): void {
-    db.prepare("UPDATE beats SET cartAdds = cartAdds + 1 WHERE id = ?").run(id);
-  }
-
-  static incrementPurchases(id: string): void {
-    db.prepare("UPDATE beats SET purchases = purchases + 1 WHERE id = ?").run(id);
-  }
-
-  // ==========================================
-  // LICENCES ASSOCIÉES
-  // ==========================================
-  static getLicenses(beatId: string) {
-    return db.prepare(`
-      bl.*, l.name, l.description 
-      FROM beat_licenses bl 
-      JOIN licenses l ON bl.licenseId = l.id 
-      WHERE bl.beatId = ?
-    `).all(beatId);
-  }
-
-  static attachLicense(beatId: string, licenseId: string, customPrice: number): void {
-    db.prepare(`
-      INSERT INTO beat_licenses (beatId, licenseId, customPrice) 
-      VALUES (?, ?, ?) 
-      ON CONFLICT(beatId, licenseId) DO UPDATE SET customPrice = ?
-    `).run(beatId, licenseId, customPrice, customPrice);
-  }
-
-  static detachLicense(beatId: string, licenseId: string): void {
-    db.prepare("DELETE FROM beat_licenses WHERE beatId = ? AND licenseId = ?").run(beatId, licenseId);
-  }
-
-  // ==========================================
-  // COMMENTAIRES
-  // ==========================================
-  static getComments(beatId: string) {
-    return db.prepare("SELECT * FROM comments WHERE beatId = ? ORDER BY createdAt DESC").all(beatId);
-  }
-
-  static addComment(comment: { id: string; beatId: string; author: string; rating: number; message: string }): void {
-    db.prepare(`
-      INSERT INTO comments (id, beatId, author, rating, message) 
-      VALUES (@id, @beatId, @author, @rating, @message)
-    `).run(comment);
-  }
-
-  static deleteComment(commentId: string): void {
-    db.prepare("DELETE FROM comments WHERE id = ?").run(commentId);
-  }
-
-  // ==========================================
-  // DIVERS
-  // ==========================================
-  static exists(id: string): boolean {
-    const row = db.prepare("SELECT 1 FROM beats WHERE id = ?").get(id);
-    return !!row;
-  }
-
-  static count(): number {
-    const row = db.prepare("SELECT COUNT(*) as count FROM beats").get() as { count: number };
-    return row.count;
+  delete(id: string): boolean {
+    const result = db.prepare('DELETE FROM beats WHERE id = ?').run(id);
+    return result.changes > 0;
   }
 }
+
+export const beatRepository = new BeatRepository();
