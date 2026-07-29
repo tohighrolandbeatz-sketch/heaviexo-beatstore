@@ -301,15 +301,11 @@ export default function Home() {
   const [lang, setLang] = useState<"FR" | "EN">("FR");
   const t = translations[lang];
 
-  const [customerName, setCustomerName] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const tagAudioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
-  const [isMuted, setIsMuted] = useState(false);
 
   const [viewMode, setViewMode] = useState<"store" | "kits">("store");
   const [detailedBeat, setDetailedBeat] = useState<Beat | null>(null);
@@ -320,7 +316,6 @@ export default function Home() {
   
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"paypal" | "momo">("momo");
 
   const [branding, setBranding] = useState<any>(null);
 
@@ -510,7 +505,7 @@ export default function Home() {
         </main>
       ) : (
         <main>
-          {/* HERO SECTION AVEC STATS CORRIGÉES (18+ SANS "YRS") */}
+          {/* HERO SECTION */}
           <section className="relative px-4 md:px-6 pt-12 md:pt-20 pb-12 md:pb-16 max-w-7xl mx-auto text-center space-y-12">
             <div className="space-y-4 max-w-4xl mx-auto">
               <span className="inline-block px-3 py-1 text-[10px] md:text-xs font-bold uppercase tracking-widest rounded-full bg-[#C66B3D]/20 text-[#C66B3D] shadow-md">
@@ -529,7 +524,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* STATS AVEC "18+" PROPRE */}
+            {/* STATS */}
             <div className="grid grid-cols-3 gap-4 border-t border-white/10 pt-8 max-w-4xl mx-auto">
               <div className="text-center">
                 <div className="text-2xl md:text-4xl font-black text-[#F4F0EB]">300+</div>
@@ -657,7 +652,7 @@ export default function Home() {
             </ul>
           </div>
           <div className="space-y-3">
-            <h5 className="text-xs font-black uppercase tracking-widest text-[#F4F0EB]">{t.vipClub}</h5>
+            <h5 className="text-xs font-black uppercase tracking-widest text-[#F4F0EB] mb-4">{t.vipClub}</h5>
             <p className="text-xs text-[#C2B9B0] leading-relaxed">{t.vipDesc}</p>
           </div>
         </div>
