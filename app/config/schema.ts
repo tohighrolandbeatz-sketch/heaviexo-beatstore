@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, real, integer } from 'drizzle-orm/pg-core';
 
+// --- Analytics (logs bruts d'événements, utilisé par la page /admin/analytics) ---
 export const analyticsEvents = pgTable('analytics_events', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   eventType: text('event_type').notNull(),
@@ -15,6 +16,18 @@ export const analyticsEvents = pgTable('analytics_events', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// --- Analytics (compteurs agrégés par beat, utilisé par analyticsRepository.ts) ---
+export const analytics = pgTable('analytics', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  beatId: text('beat_id').notNull(),
+  eventType: text('event_type').notNull(),
+  playsCount: integer('plays_count').default(0),
+  cartAdds: integer('cart_adds').default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// --- Beats ---
 export const beats = pgTable('beats', {
   id: text('id').primaryKey(),
   folder: text('folder'),
@@ -32,8 +45,61 @@ export const beats = pgTable('beats', {
   previewUrl: text('preview_url'),
   masterUrl: text('master_url'),
   stemsUrl: text('stems_url'),
-  status: text('status').notNull().default('draft'), // 'published' | 'draft' | 'archived'
+  status: text('status').notNull().default('draft'),
   visible: integer('visible').default(1),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// --- Users ---
+export const users = pgTable('users', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text('name').notNull(),
+  email: text('email').unique().notNull(),
+  role: text('role').notNull().default('customer'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// --- Sales ---
+export const sales = pgTable('sales', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id'),
+  beatId: text('beat_id').notNull(),
+  licenseId: text('license_id').notNull(),
+  amount: real('amount').notNull().default(0),
+  stripeSessionId: text('stripe_session_id'),
+  status: text('status').notNull().default('PENDING'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// --- Favorites ---
+export const favorites = pgTable('favorites', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull(),
+  beatId: text('beat_id').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// --- Comments ---
+export const comments = pgTable('comments', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull(),
+  beatId: text('beat_id').notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// --- Downloads ---
+export const downloads = pgTable('downloads', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id'),
+  beatId: text('beat_id').notNull(),
+  saleId: text('sale_id'),
+  ipAddress: text('ip_address'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
