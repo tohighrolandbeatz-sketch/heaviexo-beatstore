@@ -12,7 +12,7 @@ export interface Download {
 
 export const downloadRepository = {
   findByUserId(userId: string): Download[] {
-    return db.prepare('SELECT * FROM downloads WHERE user_id = ? ORDER BY created_at DESC').all() as Download[];
+    return await db.prepare('SELECT * FROM downloads WHERE user_id = ? ORDER BY created_at DESC').all() as Download[];
   },
 
   create(download: Omit<Download, 'created_at' | 'updated_at'>): Download {

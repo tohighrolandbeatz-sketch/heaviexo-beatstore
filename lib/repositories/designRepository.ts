@@ -18,7 +18,7 @@ export class DesignRepository {
 
   static getConfig(): DesignConfig | undefined {
     // On suppose une configuration unique stockée avec l'id "main" ou la première ligne
-    return db.prepare("SELECT * FROM designs LIMIT 1").get() as DesignConfig | undefined;
+    return await db.prepare("SELECT * FROM designs LIMIT 1").get() as DesignConfig | undefined;
   }
 
   // ==========================================
@@ -33,11 +33,11 @@ export class DesignRepository {
     const existing = this.getConfig();
 
     if (!existing) {
-      const stmt = db.prepare(`
+      const stmt = await db.prepare(`
         INSERT INTO designs (id, themeName, primaryColor, accentColor, bannerUrl, logoUrl, customCss, updatedAt)
         VALUES (@id, @themeName, @primaryColor, @accentColor, @bannerUrl, @logoUrl, @customCss, CURRENT_TIMESTAMP)
       `);
-      const result = stmt.run({
+      const result = await stmt.run({
         id: "main",
         themeName: config.themeName ?? "default",
         primaryColor: config.primaryColor ?? "#ff0055",
@@ -54,13 +54,13 @@ export class DesignRepository {
 
       if (!fields) return false;
 
-      const stmt = db.prepare(`
+      const stmt = await db.prepare(`
         UPDATE designs
         SET ${fields}, updatedAt = CURRENT_TIMESTAMP
         WHERE id = COALESCE(@id, 'main')
       `);
 
-      const result = stmt.run({
+      const result = await stmt.run({
         ...config,
         id: config.id ?? "main",
       });

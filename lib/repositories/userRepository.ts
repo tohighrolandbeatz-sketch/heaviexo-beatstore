@@ -10,17 +10,17 @@ export interface User {
 }
 
 export const userRepository = {
-  findAll(): User[] {
-    return db.prepare('SELECT * FROM users ORDER BY created_at DESC').all() as User[];
+  async findAll(): User[] {
+    return await db.prepare('SELECT * FROM users ORDER BY created_at DESC').all() as User[];
   },
 
-  findById(id: string): User | null {
-    const row = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User;
+  async findById(id: string): User | null {
+    const row = await db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User;
     return row || null;
   },
 
   findByEmail(email: string): User | null {
-    const row = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as User;
+    const row = await db.prepare('SELECT * FROM users WHERE email = ?').get(email) as User;
     return row || null;
   },
 

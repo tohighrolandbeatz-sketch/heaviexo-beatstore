@@ -1,0 +1,43 @@
+heaviexo@HeavieXos-MacBook-Pro heaviexo-beatstore % find . -type d \
+! -path "*/node_modules/*" \
+! -path "*/.git/*" \
+! -path "*/.next/*"
+.
+./types
+./app
+./app/config
+./app/admin
+./app/admin/settings
+./app/admin/comments
+./app/admin/playlist
+./app/admin/sales
+./app/admin/licenses
+./app/admin/kits
+./app/admin/beats
+./app/admin/users
+./app/admin/promo
+./app/admin/analytics
+./app/admin/analytics/studio
+./app/api
+./app/api/design
+./app/api/admin-auth
+./app/api/licenses
+./app/api/kits
+./app/api/kits/[id]
+./app/api/beats
+./app/api/beats/[id]
+./app/api/beats/[id]/comments
+./app/api/download
+./app/api/upload
+./app/api/analytics
+./app/services
+./node_modules
+./.next
+./components
+./public
+./lib
+./lib/repositories
+./.git
+./data
+./data/presets
+./services

@@ -21,28 +21,28 @@ export class OrderRepository {
   // LECTURE
   // ==========================================
 
-  static getAll(): Order[] {
-    return db.prepare("SELECT * FROM orders ORDER BY createdAt DESC").all() as Order[];
+  static async getAll(): Order[] {
+    return await db.prepare("SELECT * FROM orders ORDER BY createdAt DESC").all() as Order[];
   }
 
-  static getById(id: string): Order | undefined {
-    return db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as Order | undefined;
+  static async getById(id: string): Order | undefined {
+    return await db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as Order | undefined;
   }
 
   static getByEmail(email: string): Order[] {
-    return db.prepare("SELECT * FROM orders WHERE customerEmail = ? ORDER BY createdAt DESC").all(email) as Order[];
+    return await db.prepare("SELECT * FROM orders WHERE customerEmail = ? ORDER BY createdAt DESC").all(email) as Order[];
   }
 
   static getByStatus(status: string): Order[] {
-    return db.prepare("SELECT * FROM orders WHERE status = ? ORDER BY createdAt DESC").all(status) as Order[];
+    return await db.prepare("SELECT * FROM orders WHERE status = ? ORDER BY createdAt DESC").all(status) as Order[];
   }
 
   // ==========================================
   // CRÉATION
   // ==========================================
 
-  static create(order: Order): boolean {
-    const stmt = db.prepare(`
+  static async create(order: Order): boolean {
+    const stmt = await db.prepare(`
       INSERT INTO orders (
         id,
         customerName,
@@ -71,7 +71,7 @@ export class OrderRepository {
       )
     `);
 
-    const result = stmt.run({
+    const result = await stmt.run({
       ...order,
       status: order.status ?? "pending",
     });
@@ -83,20 +83,20 @@ export class OrderRepository {
   // MISE À JOUR
   // ==========================================
 
-  static update(id: string, order: Partial<Order>): boolean {
+  static async update(id: string, order: Partial<Order>): boolean {
     if (Object.keys(order).length === 0) return false;
 
     const fields = Object.keys(order)
       .map((key) => `${key} = @${key}`)
       .join(", ");
 
-    const stmt = db.prepare(`
+    const stmt = await db.prepare(`
       UPDATE orders
       SET ${fields}
       WHERE id = @id
     `);
 
-    const result = stmt.run({
+    const result = await stmt.run({
       ...order,
       id,
     });
@@ -104,8 +104,8 @@ export class OrderRepository {
     return result.changes > 0;
   }
 
-  static updateStatus(id: string, status: string, paidAt?: string): boolean {
-    const result = db.prepare(`
+  static async updateStatus(id: string, status: string, paidAt?: string): boolean {
+    const result = await db.prepare(`
       UPDATE orders 
       SET status = ?, paidAt = COALESCE(?, paidAt) 
       WHERE id = ?
@@ -118,8 +118,8 @@ export class OrderRepository {
   // SUPPRESSION
   // ==========================================
 
-  static delete(id: string): boolean {
-    const result = db.prepare("DELETE FROM orders WHERE id = ?").run(id);
+  static async delete(id: string): boolean {
+    const result = await db.prepare("DELETE FROM orders WHERE id = ?").run(id);
     return result.changes > 0;
   }
 
@@ -127,17 +127,17 @@ export class OrderRepository {
   // STATISTIQUES
   // ==========================================
 
-  static count(): number {
-    const row = db.prepare("SELECT COUNT(*) AS count FROM orders").get() as { count: number };
+  static async count(): number {
+    const row = await db.prepare("SELECT COUNT(*) AS count FROM orders").get() as { count: number };
     return row.count;
   }
 
   static getTotalRevenue(): number {
-    const row = db.prepare("SELECT SUM(totalAmount) AS total FROM orders WHERE status = 'paid'").get() as { total: number | null };
+    const row = await db.prepare("SELECT SUM(totalAmount) AS total FROM orders WHERE status = 'paid'").get() as { total: number | null };
     return row.total ?? 0;
   }
 
-  static getStatistics() {
+  static async getStatistics() {
     const totalOrders = this.count();
     const totalRevenue = this.getTotalRevenue();
 
@@ -156,7 +156,7 @@ export class OrderRepository {
   // DIVERS
   // ==========================================
 
-  static exists(id: string): boolean {
+  static async exists(id: string): boolean {
     return !!db.prepare("SELECT 1 FROM orders WHERE id = ?").get(id);
   }
 }

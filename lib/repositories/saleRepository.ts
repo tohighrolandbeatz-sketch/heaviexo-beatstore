@@ -13,17 +13,17 @@ export interface Sale {
 }
 
 export const saleRepository = {
-  findAll(): Sale[] {
-    return db.prepare('SELECT * FROM sales ORDER BY created_at DESC').all() as Sale[];
+  async findAll(): Sale[] {
+    return await db.prepare('SELECT * FROM sales ORDER BY created_at DESC').all() as Sale[];
   },
 
-  findById(id: string): Sale | null {
-    const row = db.prepare('SELECT * FROM sales WHERE id = ?').get(id) as Sale;
+  async findById(id: string): Sale | null {
+    const row = await db.prepare('SELECT * FROM sales WHERE id = ?').get(id) as Sale;
     return row || null;
   },
 
   findByUserId(userId: string): Sale[] {
-    return db.prepare('SELECT * FROM sales WHERE user_id = ? ORDER BY created_at DESC').all() as Sale[];
+    return await db.prepare('SELECT * FROM sales WHERE user_id = ? ORDER BY created_at DESC').all() as Sale[];
   },
 
   create(sale: Omit<Sale, 'created_at' | 'updated_at'>): Sale {

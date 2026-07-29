@@ -10,7 +10,7 @@ export interface Favorite {
 
 export const favoriteRepository = {
   findByUserId(userId: string): Favorite[] {
-    return db.prepare('SELECT * FROM favorites WHERE user_id = ? ORDER BY created_at DESC').all() as Favorite[];
+    return await db.prepare('SELECT * FROM favorites WHERE user_id = ? ORDER BY created_at DESC').all() as Favorite[];
   },
 
   add(userId: string, beatId: string): Favorite {

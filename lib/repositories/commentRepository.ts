@@ -11,7 +11,7 @@ export interface Comment {
 
 export const commentRepository = {
   findByBeatId(beatId: string): Comment[] {
-    return db.prepare('SELECT * FROM comments WHERE beat_id = ? ORDER BY created_at DESC').all() as Comment[];
+    return await db.prepare('SELECT * FROM comments WHERE beat_id = ? ORDER BY created_at DESC').all() as Comment[];
   },
 
   create(comment: Omit<Comment, 'created_at' | 'updated_at'>): Comment {
