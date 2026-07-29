@@ -15,7 +15,7 @@ import {
   FileText,
   Calendar
 } from 'lucide-react';
-import db from '@/lib/db';
+import { db } from '@/lib/db';
 
 export default function YouTubeStudioDashboard() {
   // 1. Calculs des KPIs principaux depuis SQLite

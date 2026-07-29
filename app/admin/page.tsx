@@ -1,5 +1,5 @@
 import { Music, ShoppingCart, DollarSign, TrendingUp, Users, Headphones } from 'lucide-react';
-import db from '@/lib/db';
+import { db } from '@/lib/db';
 
 export default function AdminDashboardPage() {
   // Récupération des statistiques réelles depuis SQLite sans polluer les composants
