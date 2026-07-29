@@ -1,55 +1,35 @@
-import db from '@/lib/db';
+import { NextResponse } from 'next/server';
+import { beatRepository } from '@/lib/repositories/beatRepository';
 
-export type LicenseModel = {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  features: string;
-  created_at: string;
-};
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
 
-class LicenseRepository {
-  findAll(): LicenseModel[] {
-    return db.prepare('SELECT * FROM licenses ORDER BY price ASC').all() as LicenseModel[];
-  }
+    // 1. Récupérer le beat depuis la base de données via Drizzle
+    const beat = await beatRepository.findById(id);
 
-  findById(id: string): LicenseModel | undefined {
-    return db.prepare('SELECT * FROM licenses WHERE id = ?').get(id) as LicenseModel | undefined;
-  }
+    if (!beat) {
+      return NextResponse.json({ error: 'Beat introuvable' }, { status: 404 });
+    }
 
-  create(data: Omit<LicenseModel, 'created_at'>): LicenseModel {
-    const createdAt = new Date().toISOString();
-    const stmt = db.prepare(`
-      INSERT INTO licenses (id, name, price, description, features, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
+    // 2. Vérifier si l'URL du master WAV (ou stems) existe
+    const fileUrl = beat.master_url; // ou stems_url selon le type de licence acheté
+    if (!fileUrl) {
+      return NextResponse.json({ error: 'Fichier non disponible pour le téléchargement' }, { status: 404 });
+    }
 
-    stmt.run(data.id, data.name, data.price, data.description, data.features, createdAt);
+    // 3. Optionnel : Vérification des droits d'achat / licence de l'utilisateur
+    // (Ici tu pourras ajouter ta logique de vérification de session ou de commande payée)
 
-    return { ...data, created_at: createdAt };
-  }
+    // 4. Redirection sécurisée vers l'URL Vercel Blob 
+    // Vercel Blob gère les liens publics ou tu peux utiliser une URL signée si le bucket est privé.
+    return NextResponse.redirect(fileUrl);
 
-  update(id: string, data: Partial<LicenseModel>): LicenseModel | undefined {
-    const existing = this.findById(id);
-    if (!existing) return undefined;
-
-    const updated = { ...existing, ...data };
-
-    const stmt = db.prepare(`
-      UPDATE licenses SET name = ?, price = ?, description = ?, features = ?
-      WHERE id = ?
-    `);
-
-    stmt.run(updated.name, updated.price, updated.description, updated.features, id);
-
-    return updated;
-  }
-
-  delete(id: string): boolean {
-    const result = db.prepare('DELETE FROM licenses WHERE id = ?').run(id);
-    return result.changes > 0;
+  } catch (error) {
+    console.error('Erreur lors du téléchargement:', error);
+    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
   }
 }
-
-export const licenseRepository = new LicenseRepository();
