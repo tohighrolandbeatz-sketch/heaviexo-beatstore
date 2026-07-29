@@ -1,49 +1,96 @@
-import db from '@/lib/db';
+import { db } from '@/lib/db';
+import { analytics } from '@/app/config/schema';
+import { eq, desc, sql } from 'drizzle-orm';
 
 export interface Analytics {
   id: string;
-  beat_id: string;
-  plays_count: number;
-  cart_adds: number;
-  created_at: string;
-  updated_at: string;
+  beatId: string;
+  eventType: string;
+  playsCount: number;
+  cartAdds: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export const analyticsRepository = {
-  async findByBeatId(beatId: string): Promise<Analytics | null> {
-    const row = await db.prepare('SELECT * FROM analytics WHERE beat_id = ?').get(beatId);
-    return (row as Analytics | undefined) ?? null;
-  },
+export class AnalyticsRepository {
+  static async getAll(): Promise<Analytics[]> {
+    const result = await db.select().from(analytics).orderBy(desc(analytics.createdAt));
+    return result.map((row) => ({
+      id: row.id,
+      beatId: row.beatId,
+      eventType: row.eventType,
+      playsCount: row.playsCount ?? 0,
+      cartAdds: row.cartAdds ?? 0,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    }));
+  }
 
-  async incrementPlay(beatId: string): Promise<void> {
-    const now = new Date().toISOString();
-    const existing = await analyticsRepository.findByBeatId(beatId);
+  static async getById(id: string): Promise<Analytics | null> {
+    const result = await db.select().from(analytics).where(eq(analytics.id, id)).limit(1);
+    if (!result[0]) return null;
+    const row = result[0];
+    return {
+      id: row.id,
+      beatId: row.beatId,
+      eventType: row.eventType,
+      playsCount: row.playsCount ?? 0,
+      cartAdds: row.cartAdds ?? 0,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
 
-    if (existing) {
-      await db
-        .prepare('UPDATE analytics SET plays_count = plays_count + 1, updated_at = ? WHERE beat_id = ?')
-        .run(now, beatId);
-    } else {
-      await db.prepare(`
-        INSERT INTO analytics (id, beat_id, plays_count, cart_adds, created_at, updated_at)
-        VALUES (?, ?, 1, 0, ?, ?)
-      `).run(`ana_${Date.now()}`, beatId, now, now);
+  static async getByBeatId(beatId: string): Promise<Analytics[]> {
+    const result = await db.select().from(analytics).where(eq(analytics.beatId, beatId));
+    return result.map((row) => ({
+      id: row.id,
+      beatId: row.beatId,
+      eventType: row.eventType,
+      playsCount: row.playsCount ?? 0,
+      cartAdds: row.cartAdds ?? 0,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    }));
+  }
+
+  static async create(data: Omit<Analytics, 'createdAt' | 'updatedAt'>): Promise<boolean> {
+    try {
+      const now = new Date();
+      await db.insert(analytics).values({
+        id: data.id,
+        beatId: data.beatId,
+        eventType: data.eventType,
+        playsCount: data.playsCount ?? 0,
+        cartAdds: data.cartAdds ?? 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return true;
+    } catch {
+      return false;
     }
-  },
+  }
 
-  async incrementCartAdd(beatId: string): Promise<void> {
-    const now = new Date().toISOString();
-    const existing = await analyticsRepository.findByBeatId(beatId);
-
-    if (existing) {
+  static async update(id: string, data: Partial<Analytics>): Promise<boolean> {
+    try {
       await db
-        .prepare('UPDATE analytics SET cart_adds = cart_adds + 1, updated_at = ? WHERE beat_id = ?')
-        .run(now, beatId);
-    } else {
-      await db.prepare(`
-        INSERT INTO analytics (id, beat_id, plays_count, cart_adds, created_at, updated_at)
-        VALUES (?, ?, 0, 1, ?, ?)
-      `).run(`ana_${Date.now()}`, beatId, now, now);
+        .update(analytics)
+        .set({
+          ...(data.eventType !== undefined && { eventType: data.eventType }),
+          ...(data.playsCount !== undefined && { playsCount: data.playsCount }),
+          ...(data.cartAdds !== undefined && { cartAdds: data.cartAdds }),
+          updatedAt: new Date(),
+        })
+        .where(eq(analytics.id, id));
+      return true;
+    } catch {
+      return false;
     }
-  },
-};
+  }
+
+  static async delete(id: string): Promise<boolean> {
+    const result = await db.delete(analytics).where(eq(analytics.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+}
