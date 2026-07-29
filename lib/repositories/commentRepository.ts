@@ -1,4 +1,6 @@
-import db from '@/lib/db';
+import { db } from '@/lib/db';
+import { comments } from '@/app/config/schema';
+import { eq, desc } from 'drizzle-orm';
 
 export interface Comment {
   id: string;
@@ -10,27 +12,39 @@ export interface Comment {
 }
 
 export const commentRepository = {
-  findByBeatId(beatId: string): Comment[] {
-    return await db.prepare('SELECT * FROM comments WHERE beat_id = ? ORDER BY created_at DESC').all() as Comment[];
+  async findByBeatId(beatId: string): Promise<Comment[]> {
+    const result = await db.select().from(comments).where(eq(comments.beatId, beatId)).orderBy(desc(comments.createdAt));
+    return result.map((row) => ({
+      id: row.id,
+      user_id: row.userId,
+      beat_id: row.beatId,
+      content: row.content,
+      created_at: row.createdAt.toISOString(),
+      updated_at: row.updatedAt.toISOString(),
+    }));
   },
 
-  create(comment: Omit<Comment, 'created_at' | 'updated_at'>): Comment {
-    const now = new Date().toISOString();
+  async create(comment: Omit<Comment, 'created_at' | 'updated_at'>): Promise<Comment> {
+    const now = new Date();
     const newComment: Comment = {
       ...comment,
-      created_at: now,
-      updated_at: now,
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
     };
 
-    db.prepare(`
-      INSERT INTO comments (id, user_id, beat_id, content, created_at, updated_at)
-      VALUES (@id, @user_id, @beat_id, @content, @created_at, @updated_at)
-    `).run(newComment);
+    await db.insert(comments).values({
+      id: comment.id,
+      userId: comment.user_id,
+      beatId: comment.beat_id,
+      content: comment.content,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     return newComment;
   },
 
-  delete(id: string): void {
-    db.prepare('DELETE FROM comments WHERE id = ?').run(id);
+  async delete(id: string): Promise<void> {
+    await db.delete(comments).where(eq(comments.id, id));
   }
 };
