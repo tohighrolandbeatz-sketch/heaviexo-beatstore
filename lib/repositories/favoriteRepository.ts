@@ -1,4 +1,6 @@
-import db from '@/lib/db';
+import { db } from '@/lib/db';
+import { favorites } from '@/app/config/schema';
+import { eq, and, desc } from 'drizzle-orm';
 
 export interface Favorite {
   id: string;
@@ -9,24 +11,45 @@ export interface Favorite {
 }
 
 export const favoriteRepository = {
-  findByUserId(userId: string): Favorite[] {
-    return await db.prepare('SELECT * FROM favorites WHERE user_id = ? ORDER BY created_at DESC').all() as Favorite[];
+  async findByUserId(userId: string): Promise<Favorite[]> {
+    const result = await db.select().from(favorites).where(eq(favorites.userId, userId)).orderBy(desc(favorites.createdAt));
+    return result.map((row) => ({
+      id: row.id,
+      user_id: row.userId,
+      beat_id: row.beatId,
+      created_at: row.createdAt.toISOString(),
+      updated_at: row.updatedAt.toISOString(),
+    }));
   },
 
-  add(userId: string, beatId: string): Favorite {
-    const now = new Date().toISOString();
+  async add(userId: string, beatId: string): Promise<Favorite> {
+    const now = new Date();
     const id = `fav_${Date.now()}`;
     
-    // Évite les doublons grâce à la contrainte UNIQUE, ou ignore si déjà présent
-    db.prepare(`
-      INSERT OR IGNORE INTO favorites (id, user_id, beat_id, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(id, userId, beatId, now, now);
+    // On utilise onConflictDoNothing pour simuler l'INSERT OR IGNORE de SQLite
+    await db.insert(favorites).values({
+      id,
+      userId,
+      beatId,
+      createdAt: now,
+      updatedAt: now,
+    }).onConflictDoNothing();
 
-    return { id, user_id: userId, beat_id: beatId, created_at: now, updated_at: now };
+    return { 
+      id, 
+      user_id: userId, 
+      beat_id: beatId, 
+      created_at: now.toISOString(), 
+      updated_at: now.toISOString() 
+    };
   },
 
-  remove(userId: string, beatId: string): void {
-    db.prepare('DELETE FROM favorites WHERE user_id = ? AND beat_id = ?').run(userId, beatId);
+  async remove(userId: string, beatId: string): Promise<void> {
+    await db.delete(favorites).where(
+      and(
+        eq(favorites.userId, userId),
+        eq(favorites.beatId, beatId)
+      )
+    );
   }
 };

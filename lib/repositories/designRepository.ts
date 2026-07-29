@@ -1,4 +1,17 @@
-import db from "@/lib/db";
+import { db } from '@/lib/db';
+import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { eq } from 'drizzle-orm';
+
+export const designs = pgTable('designs', {
+  id: text('id').primaryKey(),
+  themeName: text('theme_name').default('default'),
+  primaryColor: text('primary_color').default('#ff0055'),
+  accentColor: text('accent_color').default('#00ffff'),
+  bannerUrl: text('banner_url').default(''),
+  logoUrl: text('logo_url').default(''),
+  customCss: text('custom_css').default(''),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
 
 export interface DesignConfig {
   id?: string;
@@ -16,56 +29,61 @@ export class DesignRepository {
   // LECTURE
   // ==========================================
 
-  static getConfig(): DesignConfig | undefined {
-    // On suppose une configuration unique stockée avec l'id "main" ou la première ligne
-    return await db.prepare("SELECT * FROM designs LIMIT 1").get() as DesignConfig | undefined;
+  static async getConfig(): Promise<DesignConfig | undefined> {
+    const result = await db.select().from(designs).limit(1);
+    if (!result[0]) return undefined;
+    const row = result[0];
+    return {
+      id: row.id,
+      themeName: row.themeName ?? undefined,
+      primaryColor: row.primaryColor ?? undefined,
+      accentColor: row.accentColor ?? undefined,
+      bannerUrl: row.bannerUrl ?? undefined,
+      logoUrl: row.logoUrl ?? undefined,
+      customCss: row.customCss ?? undefined,
+      updatedAt: row.updatedAt.toISOString(),
+    };
   }
 
   // ==========================================
   // CRÉATION / MISE À JOUR (UPSERT)
   // ==========================================
 
-  static saveConfig(config: DesignConfig): boolean {
-    // Vérifions d'abord si une table designs existe ou créons-la dynamiquement si besoin, 
-    // mais supposons qu'elle est gérée ou qu'on utilise une table clé/valeur ou une table dédiée.
-    // Faisons une approche robuste avec une table simple id/data ou des colonnes dédiées.
-    
-    const existing = this.getConfig();
+  static async saveConfig(config: DesignConfig): Promise<boolean> {
+    try {
+      const targetId = config.id ?? 'main';
+      const existing = await DesignRepository.getConfig();
 
-    if (!existing) {
-      const stmt = await db.prepare(`
-        INSERT INTO designs (id, themeName, primaryColor, accentColor, bannerUrl, logoUrl, customCss, updatedAt)
-        VALUES (@id, @themeName, @primaryColor, @accentColor, @bannerUrl, @logoUrl, @customCss, CURRENT_TIMESTAMP)
-      `);
-      const result = await stmt.run({
-        id: "main",
-        themeName: config.themeName ?? "default",
-        primaryColor: config.primaryColor ?? "#ff0055",
-        accentColor: config.accentColor ?? "#00ffff",
-        bannerUrl: config.bannerUrl ?? "",
-        logoUrl: config.logoUrl ?? "",
-        customCss: config.customCss ?? "",
-      });
-      return result.changes > 0;
-    } else {
-      const fields = Object.keys(config)
-        .map((key) => `${key} = @${key}`)
-        .join(", ");
+      if (!existing) {
+        await db.insert(designs).values({
+          id: targetId,
+          themeName: config.themeName ?? 'default',
+          primaryColor: config.primaryColor ?? '#ff0055',
+          accentColor: config.accentColor ?? '#00ffff',
+          bannerUrl: config.bannerUrl ?? '',
+          logoUrl: config.logoUrl ?? '',
+          customCss: config.customCss ?? '',
+          updatedAt: new Date(),
+        });
+        return true;
+      } else {
+        await db
+          .update(designs)
+          .set({
+            ...(config.themeName !== undefined && { themeName: config.themeName }),
+            ...(config.primaryColor !== undefined && { primaryColor: config.primaryColor }),
+            ...(config.accentColor !== undefined && { accentColor: config.accentColor }),
+            ...(config.bannerUrl !== undefined && { bannerUrl: config.bannerUrl }),
+            ...(config.logoUrl !== undefined && { logoUrl: config.logoUrl }),
+            ...(config.customCss !== undefined && { customCss: config.customCss }),
+            updatedAt: new Date(),
+          })
+          .where(eq(designs.id, targetId));
 
-      if (!fields) return false;
-
-      const stmt = await db.prepare(`
-        UPDATE designs
-        SET ${fields}, updatedAt = CURRENT_TIMESTAMP
-        WHERE id = COALESCE(@id, 'main')
-      `);
-
-      const result = await stmt.run({
-        ...config,
-        id: config.id ?? "main",
-      });
-
-      return result.changes > 0;
+        return true;
+      }
+    } catch {
+      return false;
     }
   }
 }

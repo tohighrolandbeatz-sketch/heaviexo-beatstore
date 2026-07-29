@@ -1,4 +1,16 @@
 import { db } from '@/lib/db';
+import { pgTable, text, real, timestamp } from 'drizzle-orm/pg-core';
+import { eq, asc } from 'drizzle-orm';
+
+export const licenses = pgTable('licenses', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  price: real('price').notNull(),
+  description: text('description').notNull(),
+  features: text('features').default('[]').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
 
 export type LicenseModel = {
   id: string;
@@ -6,15 +18,6 @@ export type LicenseModel = {
   price: number;
   description: string;
   features: string[];
-  created_at: string;
-};
-
-type LicenseRow = {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  features: string;
   created_at: string;
 };
 
@@ -28,34 +31,44 @@ function parseFeatures(raw: string): string[] {
   }
 }
 
-function rowToModel(row: LicenseRow): LicenseModel {
+function rowToModel(row: typeof licenses.$inferSelect): LicenseModel {
   return {
-    ...row,
+    id: row.id,
+    name: row.name,
+    price: row.price,
+    description: row.description,
     features: parseFeatures(row.features),
+    created_at: row.createdAt.toISOString(),
   };
 }
 
 class LicenseRepository {
   async findAll(): Promise<LicenseModel[]> {
-    const rows = await db.prepare('SELECT * FROM licenses ORDER BY price ASC').all() as LicenseRow[];
+    const rows = await db.select().from(licenses).orderBy(asc(licenses.price));
     return (rows || []).map(rowToModel);
   }
 
   async findById(id: string): Promise<LicenseModel | undefined> {
-    const row = await db.prepare('SELECT * FROM licenses WHERE id = ?').get(id) as LicenseRow | undefined;
+    const result = await db.select().from(licenses).where(eq(licenses.id, id)).limit(1);
+    const row = result[0];
     return row ? rowToModel(row) : undefined;
   }
 
   async create(data: Omit<LicenseModel, 'created_at'>): Promise<LicenseModel> {
-    const createdAt = new Date().toISOString();
+    const now = new Date();
     const featuresJson = JSON.stringify(data.features || []);
 
-    await db.prepare(`
-      INSERT INTO licenses (id, name, price, description, features, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(data.id, data.name, data.price, data.description, featuresJson, createdAt);
+    await db.insert(licenses).values({
+      id: data.id,
+      name: data.name,
+      price: data.price,
+      description: data.description,
+      features: featuresJson,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    return { ...data, created_at: createdAt };
+    return { ...data, created_at: now.toISOString() };
   }
 
   async update(id: string, data: Partial<LicenseModel>): Promise<LicenseModel | undefined> {
@@ -65,17 +78,23 @@ class LicenseRepository {
     const updated: LicenseModel = { ...existing, ...data };
     const featuresJson = JSON.stringify(updated.features || []);
 
-    await db.prepare(`
-      UPDATE licenses SET name = ?, price = ?, description = ?, features = ?
-      WHERE id = ?
-    `).run(updated.name, updated.price, updated.description, featuresJson, id);
+    await db
+      .update(licenses)
+      .set({
+        name: updated.name,
+        price: updated.price,
+        description: updated.description,
+        features: featuresJson,
+        updatedAt: new Date(),
+      })
+      .where(eq(licenses.id, id));
 
     return updated;
   }
 
   async delete(id: string): Promise<boolean> {
-    const result = await db.prepare('DELETE FROM licenses WHERE id = ?').run(id);
-    return result.changes > 0;
+    const result = await db.delete(licenses).where(eq(licenses.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

@@ -1,35 +1,36 @@
 import { db } from '@/lib/db';
+import { beats } from '@/app/config/schema';
+import { eq } from 'drizzle-orm';
 
 export const uploadRepository = {
-  updateBeatFiles(
+  async updateBeatFiles(
     id: string, 
     filesData: { cover?: string; previewMp3?: string; masterWav?: string; stemsZip?: string }
-  ): void {
+  ): Promise<void> {
     try {
-      const fields = [];
-      const values: any = { id };
+      const updateValues: Record<string, any> = {
+        updatedAt: new Date(),
+      };
 
       if (filesData.cover !== undefined) {
-        fields.push('cover = @cover');
-        values.cover = filesData.cover;
+        updateValues.coverUrl = filesData.cover;
       }
       if (filesData.previewMp3 !== undefined) {
-        fields.push('previewMp3 = @previewMp3');
-        values.previewMp3 = filesData.previewMp3;
+        updateValues.previewUrl = filesData.previewMp3;
       }
       if (filesData.masterWav !== undefined) {
-        fields.push('masterWav = @masterWav');
-        values.masterWav = filesData.masterWav;
+        updateValues.masterUrl = filesData.masterWav;
       }
       if (filesData.stemsZip !== undefined) {
-        fields.push('stemsZip = @stemsZip');
-        values.stemsZip = filesData.stemsZip;
+        updateValues.stemsUrl = filesData.stemsZip;
       }
 
-      if (fields.length === 0) return;
+      if (Object.keys(updateValues).length <= 1) return;
 
-      const query = `UPDATE beats SET ${fields.join(', ')} WHERE id = @id`;
-      db.prepare(query).run(values);
+      await db
+        .update(beats)
+        .set(updateValues)
+        .where(eq(beats.id, id));
     } catch (error) {
       console.error(`Erreur UploadRepository lors de la mise à jour des fichiers du beat ${id}:`, error);
       throw new Error(`Échec de la mise en base de données des fichiers pour le beat ${id}.`);

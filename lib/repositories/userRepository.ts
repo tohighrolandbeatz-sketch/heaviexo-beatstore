@@ -1,4 +1,6 @@
-import db from '@/lib/db';
+import { db } from '@/lib/db';
+import { users } from '@/app/config/schema';
+import { eq, desc } from 'drizzle-orm';
 
 export interface User {
   id: string;
@@ -10,37 +12,67 @@ export interface User {
 }
 
 export const userRepository = {
-  async findAll(): User[] {
-    return await db.prepare('SELECT * FROM users ORDER BY created_at DESC').all() as User[];
+  async findAll(): Promise<User[]> {
+    const result = await db.select().from(users).orderBy(desc(users.createdAt));
+    return result.map((row) => ({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      created_at: row.createdAt.toISOString(),
+      updated_at: row.updatedAt.toISOString(),
+    }));
   },
 
-  async findById(id: string): User | null {
-    const row = await db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User;
-    return row || null;
+  async findById(id: string): Promise<User | null> {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    if (!result[0]) return null;
+    const row = result[0];
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      created_at: row.createdAt.toISOString(),
+      updated_at: row.updatedAt.toISOString(),
+    };
   },
 
-  findByEmail(email: string): User | null {
-    const row = await db.prepare('SELECT * FROM users WHERE email = ?').get(email) as User;
-    return row || null;
+  async findByEmail(email: string): Promise<User | null> {
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    if (!result[0]) return null;
+    const row = result[0];
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      created_at: row.createdAt.toISOString(),
+      updated_at: row.updatedAt.toISOString(),
+    };
   },
 
-  create(user: Omit<User, 'created_at' | 'updated_at'>): User {
-    const now = new Date().toISOString();
+  async create(user: Omit<User, 'created_at' | 'updated_at'>): Promise<User> {
+    const now = new Date();
     const newUser: User = {
       ...user,
-      created_at: now,
-      updated_at: now,
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
     };
 
-    db.prepare(`
-      INSERT INTO users (id, name, email, role, created_at, updated_at)
-      VALUES (@id, @name, @email, @role, @created_at, @updated_at)
-    `).run(newUser);
+    await db.insert(users).values({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     return newUser;
   },
 
-  delete(id: string): void {
-    db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  async delete(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 };
