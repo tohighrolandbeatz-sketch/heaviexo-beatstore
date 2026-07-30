@@ -53,6 +53,7 @@ export function useBeatData() {
         price: b.price,
         cover: b.cover_url || b.cover || "",
         previewMp3: b.preview_url || b.previewMp3 || "",
+        licenses_json: b.licenses_json || "[]",
         description: b.description || "",
         visible: b.visible !== undefined ? b.visible : b.status !== "draft",
         comments: b.comments || []

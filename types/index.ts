@@ -18,6 +18,7 @@ export interface Beat {
   previewMp3: string;
   description: string;
   visible?: boolean;
+  licenses_json?: string;
   comments?: Comment[];
 }
 
