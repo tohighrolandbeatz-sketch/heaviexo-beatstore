@@ -127,7 +127,7 @@ export default function BeatstorePage() {
   };
 
   const footerText = branding?.footerText || t.footerDesc;
-  const heroBeat = beatsList.find(b => b.featured) || beatsList[0];
+  const heroBeat = beatsList.find((b: Beat) => b.featured) || beatsList[0];
 
   return (
     <div className="min-h-screen bg-black text-[#F4F0EB] font-sans pt-24 pb-24 relative overflow-x-hidden">
@@ -137,18 +137,21 @@ export default function BeatstorePage() {
       <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} setViewMode={() => {}} t={t} />
 
       {!detailedBeat && heroBeat && (
-        <section className="relative h-[50vh] md:h-[60vh] flex items-center justify-center mb-12 md:mb-20 overflow-hidden bg-black px-4">
-          <div className="absolute inset-0 z-0 opacity-40 scale-110 bg-cover bg-center blur-[100px]" style={{ backgroundImage: `url(${heroBeat.cover})` }} />
-          <div className="relative z-10 text-center max-w-4xl">
-            <span className="inline-block px-3 py-1 mb-4 md:mb-6 text-[10px] md:text-[11px] font-bold uppercase tracking-widest rounded-full bg-[#C66B3D]/20 text-[#C66B3D] border border-[#C66B3D]/30 backdrop-blur-sm">Dernière Sortie Exclusive</span>
-            <h1 className="text-4xl sm:text-6xl md:text-8xl font-black text-[#F4F0EB] tracking-tighter mb-4 md:mb-6 leading-[0.9] drop-shadow-lg">{heroBeat.title}</h1>
-            <p className="text-sm md:text-xl text-[#C2B9B0] mb-8 md:mb-10 font-light max-w-xl mx-auto">Plongez dans l'univers sonore de <strong className='text-white font-medium'>Heaviexo</strong>.</p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button onClick={() => togglePlay(heroBeat)} className="flex items-center justify-center gap-3 bg-white text-black px-8 py-3.5 rounded-full font-extrabold text-sm md:text-lg hover:scale-105 transition-transform">
-                {isPlaying && currentBeat?.id === heroBeat.id ? <Pause className="w-5 h-5 fill-black" /> : <Play className="w-5 h-5 fill-black" />}
-                {isPlaying && currentBeat?.id === heroBeat.id ? "PAUSE" : "PLAY NOW"}
-              </button>
-              <button onClick={(e) => handleBeatLicense(heroBeat, e)} className="bg-black/50 backdrop-blur-md border border-white/10 text-white px-8 py-3.5 rounded-full font-bold text-sm md:text-lg hover:bg-white/10">LICENCE</button>
+        <section className="relative w-full flex items-center justify-center mb-12 md:mb-20 overflow-hidden bg-black">
+          <div className="relative w-full" style={{ aspectRatio: '4/3', maxHeight: '70vh' }}>
+            <img src={heroBeat.cover} alt={heroBeat.title} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/50" />
+            <div className="absolute inset-0 flex flex-col items-center justify-end p-6 md:p-10 text-center">
+              <span className="inline-block px-3 py-1 mb-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest rounded-full bg-[#C66B3D]/20 text-[#C66B3D] border border-[#C66B3D]/30 backdrop-blur-sm">Dernière Sortie Exclusive</span>
+              <h1 className="text-3xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter mb-4 leading-[0.9] drop-shadow-lg">{heroBeat.title}</h1>
+              <p className="text-sm md:text-lg text-[#C2B9B0] mb-6 font-light max-w-xl">Plongez dans l'univers sonore de <strong className='text-white font-medium'>Heaviexo</strong>.</p>
+              <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                <button onClick={() => togglePlay(heroBeat)} className="flex items-center justify-center gap-3 bg-white text-black px-8 py-3.5 rounded-full font-extrabold text-sm md:text-lg hover:scale-105 transition-transform">
+                  {isPlaying && currentBeat?.id === heroBeat.id ? <Pause className="w-5 h-5 fill-black" /> : <Play className="w-5 h-5 fill-black" />}
+                  {isPlaying && currentBeat?.id === heroBeat.id ? "PAUSE" : "PLAY NOW"}
+                </button>
+                <button onClick={(e) => handleBeatLicense(heroBeat, e)} className="bg-black/50 backdrop-blur-md border border-white/10 text-white px-8 py-3.5 rounded-full font-bold text-sm md:text-lg hover:bg-white/10">LICENCE</button>
+              </div>
             </div>
           </div>
         </section>

@@ -20,6 +20,7 @@ export interface BeatModel {
   stems_url?: string;
   status: 'published' | 'draft' | 'archived';
   created_at: string;
+  featured: number;
 }
 
 class BeatRepository {
@@ -40,6 +41,7 @@ class BeatRepository {
       description: beat.description ?? '',
       seo_tags: beat.seoTags ?? '',
       price: beat.price,
+      featured: beat.featured ?? 0,
       licenses_json: beat.licensesJson ?? '[]',
       cover_url: beat.coverUrl ?? undefined,
       preview_url: beat.previewUrl ?? undefined,
@@ -72,6 +74,7 @@ class BeatRepository {
       description: beat.description ?? '',
       seo_tags: beat.seoTags ?? '',
       price: beat.price,
+      featured: beat.featured ?? 0,
       licenses_json: beat.licensesJson ?? '[]',
       cover_url: beat.coverUrl ?? undefined,
       preview_url: beat.previewUrl ?? undefined,
@@ -97,6 +100,7 @@ class BeatRepository {
       description: data.description ?? '',
       seoTags: data.seo_tags ?? '',
       price: data.price,
+      featured: 0,
       licensesJson: data.licenses_json ?? '[]',
       coverUrl: data.cover_url ?? null,
       previewUrl: data.preview_url ?? null,
