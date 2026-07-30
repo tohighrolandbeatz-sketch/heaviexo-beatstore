@@ -1,7 +1,7 @@
 'use client';
 import { upload } from '@vercel/blob/client';
-import { useState, useEffect } from 'react';
-import { Trash2, Edit, Eye, EyeOff, CheckSquare, Square, Upload, Music, Plus, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Trash2, Edit, Eye, EyeOff, CheckSquare, Square, Upload, Music, Plus, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface Beat {
   id: string;
@@ -16,7 +16,39 @@ interface Beat {
   previewMp3?: string;
   masterWav?: string;
   stemsZip?: string;
+  licenses?: string[];
 }
+
+interface UploadedFile {
+  key: string;
+  name: string;
+  url: string;
+  size: string;
+}
+
+interface UploadProgress {
+  key: string;
+  name: string;
+  progress: number;
+}
+
+const MUSICAL_KEYS = [
+  'C', 'Cm', 'C#', 'C#m', 'D', 'Dm', 'D#', 'D#m',
+  'E', 'Em', 'F', 'Fm', 'F#', 'F#m', 'G', 'Gm',
+  'G#', 'G#m', 'A', 'Am', 'A#', 'A#m', 'B', 'Bm'
+];
+
+const CATEGORIES = [
+  'Trap', 'Drill', 'Afrobeat', 'Amapiano', 'R&B', 'Pop',
+  'Boom Bap', 'Lo-Fi', 'Reggaeton', 'Dancehall', 'Jersey Club', 'Other'
+];
+
+const MOOD_TAGS = [
+  'Dark', 'Melodic', 'Energetic', 'Chill', 'Aggressive',
+  'Emotional', 'Happy', 'Sad', 'Epic', 'Cinematic',
+  'Bouncy', 'Hard', 'Smooth', 'Trippy', 'Vintage',
+  'Futuristic', 'Romantic', 'Hype', 'Dreamy', 'Gritty'
+];
 
 export default function AdminBeatsPage() {
   const [beats, setBeats] = useState<Beat[]>([]);
@@ -28,228 +60,187 @@ export default function AdminBeatsPage() {
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState(29);
   const [category, setCategory] = useState('');
-  const [bpm, setBpm] = useState<number>(140);
+  const [bpm, setBpm] = useState<number | ''>('');
   const [musicalKey, setMusicalKey] = useState('');
-
-  const [moodInput, setMoodInput] = useState('');
   const [moods, setMoods] = useState<string[]>([]);
+  const [selectedLicenses, setSelectedLicenses] = useState<string[]>(['mp3', 'wav', 'stems', 'exclusive']);
+  const [showMoodDropdown, setShowMoodDropdown] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [uploadProgresses, setUploadProgresses] = useState<UploadProgress[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const moodDropdownRef = useRef<HTMLDivElement>(null);
 
-  const [files, setFiles] = useState<{
-    cover?: File;
-    previewMp3?: File;
-    masterWav?: File;
-    stemsZip?: File;
-  }>({});
-
-  const [uploadProgress, setUploadProgress] = useState<{
-    cover: number;
-    previewMp3: number;
-    masterWav: number;
-    stemsZip: number;
-  }>({ cover: 0, previewMp3: 0, masterWav: 0, stemsZip: 0 });
-
-  const [uploading, setUploading] = useState(false);
-
+  useEffect(() => { fetchBeats(); }, []);
   useEffect(() => {
-    fetchBeats();
+    function handleClickOutside(e: MouseEvent) {
+      if (moodDropdownRef.current && !moodDropdownRef.current.contains(e.target as Node)) {
+        setShowMoodDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   async function fetchBeats() {
     try {
       const res = await fetch('/api/beats');
       const data = await res.json();
-
-      // L'API renvoie les vrais noms de colonnes (cover_url, preview_url, genre, musical_key...)
-      // On les adapte ici aux noms attendus par l'interface
       const mapped: Beat[] = (Array.isArray(data) ? data : []).map((b: any) => ({
-        id: b.id,
-        title: b.title,
-        category: b.genre || '',
-        price: b.price,
-        bpm: b.bpm,
-        musicalKey: b.musical_key || '',
+        id: b.id, title: b.title, category: b.genre || '', price: b.price,
+        bpm: b.bpm, musicalKey: b.musical_key || '',
         moods: b.mood ? b.mood.split(',').map((m: string) => m.trim()).filter(Boolean) : [],
-        visible: b.status !== 'draft',
-        cover: b.cover_url || undefined,
-        previewMp3: b.preview_url || undefined,
-        masterWav: b.master_url || undefined,
+        visible: b.status !== 'draft', cover: b.cover_url || undefined,
+        previewMp3: b.preview_url || undefined, masterWav: b.master_url || undefined,
         stemsZip: b.stems_url || undefined,
+        licenses: b.licenses_json ? JSON.parse(b.licenses_json) : ['mp3', 'wav', 'stems', 'exclusive'],
       }));
-
       setBeats(mapped);
-    } catch (err) {
-      console.error('Erreur chargement beats', err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error('Erreur chargement beats', err); }
+    finally { setLoading(false); }
   }
 
-  const toggleSelectAll = () => {
-    if (selectedIds.length === beats.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(beats.map((b) => b.id));
-    }
-  };
-
-  const toggleSelectOne = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
+  const toggleSelectAll = () => setSelectedIds(selectedIds.length === beats.length ? [] : beats.map(b => b.id));
+  const toggleSelectOne = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
   async function handleBatchDelete() {
-    if (!confirm(`Voulez-vous vraiment supprimer les ${selectedIds.length} beats sélectionnés ?`)) return;
-
-    try {
-      await Promise.all(
-        selectedIds.map((id) =>
-          fetch(`/api/beats/${id}`, { method: 'DELETE' })
-        )
-      );
-      setSelectedIds([]);
-      fetchBeats();
-    } catch (err) {
-      alert('Erreur lors de la suppression groupée.');
-    }
+    if (!confirm(`Supprimer les ${selectedIds.length} beats sélectionnés ?`)) return;
+    await Promise.all(selectedIds.map(id => fetch(`/api/beats/${id}`, { method: 'DELETE' })));
+    setSelectedIds([]); fetchBeats();
   }
 
   async function toggleVisibility(id: string, currentStatus: boolean) {
+    await fetch(`/api/beats/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: currentStatus ? 'draft' : 'published' }) });
+    fetchBeats();
+  }
+
+  function toggleMood(mood: string) {
+    setMoods(prev => prev.includes(mood) ? prev.filter(m => m !== mood) : [...prev, mood]);
+  }
+
+  function toggleLicense(licenseId: string) {
+    setSelectedLicenses(prev => 
+      prev.includes(licenseId) ? prev.filter(l => l !== licenseId) : [...prev, licenseId]
+    );
+    setErrors(prev => { const e = {...prev}; delete e.licenses; return e; });
+  }
+
+  function validate(): boolean {
+    const newErrors: Record<string, string> = {};
+    if (!title.trim()) newErrors.title = 'Le titre est obligatoire';
+    if (!price || price <= 0) newErrors.price = 'Le prix doit être supérieur à 0';
+    if (!bpm || bpm <= 0) newErrors.bpm = 'Le BPM est obligatoire';
+    if (!category) newErrors.category = 'La catégorie est obligatoire';
+    if (!musicalKey) newErrors.musicalKey = 'La gamme est obligatoire';
+    if (selectedLicenses.length === 0) newErrors.licenses = 'Au moins une licence doit être sélectionnée';
+    
+    const hasCover = uploadedFiles.some(f => f.key === 'cover');
+    const hasPreview = uploadedFiles.some(f => f.key === 'previewMp3');
+    const hasMaster = uploadedFiles.some(f => f.key === 'masterWav');
+    
+    if (!hasCover && !currentBeatId) newErrors.cover = 'La cover est obligatoire';
+    if (!hasPreview && !hasMaster && !currentBeatId) newErrors.audio = 'Au moins un fichier audio est obligatoire (Preview MP3 ou Master WAV)';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }
+
+  async function uploadSingleFile(file: File, key: string) {
+    setUploading(key);
+    setUploadProgresses(prev => [...prev.filter(p => p.key !== key), { key, name: file.name, progress: 0 }]);
+    
     try {
-      // Le statut réel en base est "status" (published/draft), pas un booléen "visible"
-      await fetch(`/api/beats/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: currentStatus ? 'draft' : 'published' }),
+      const slug = title ? title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now() : `beat-${Date.now()}`;
+      const blob = await upload(`beats/${slug}/${file.name}`, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload',
+        onUploadProgress: (progressEvent) => {
+          const progress = Math.round(progressEvent.percentage);
+          setUploadProgresses(prev => prev.map(p => p.key === key ? { ...p, progress } : p));
+        },
       });
-      fetchBeats();
+      
+      setUploadedFiles(prev => [...prev.filter(f => f.key !== key), { key, name: file.name, url: blob.url, size: formatSize(file.size) }]);
+      setUploadProgresses(prev => prev.filter(p => p.key !== key));
+      
+      if (key === 'cover') setErrors(prev => { const e = {...prev}; delete e.cover; return e; });
+      if (key === 'previewMp3' || key === 'masterWav') setErrors(prev => { const e = {...prev}; delete e.audio; return e; });
+      
     } catch (err) {
-      alert('Erreur lors du changement de visibilité.');
+      setUploadProgresses(prev => prev.filter(p => p.key !== key));
+      alert(`Erreur upload ${key}: ${err instanceof Error ? err.message : 'Inconnue'}`);
+    } finally {
+      setUploading(null);
     }
   }
 
-  function addMood() {
-    if (moodInput.trim() && !moods.includes(moodInput.trim())) {
-      setMoods([...moods, moodInput.trim()]);
-      setMoodInput('');
-    }
+  function formatSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
   }
 
-  function removeMood(moodToRemove: string) {
-    setMoods(moods.filter(m => m !== moodToRemove));
+  function removeFile(key: string) {
+    setUploadedFiles(prev => prev.filter(f => f.key !== key));
   }
 
   async function handleSaveBeat(e: React.FormEvent) {
     e.preventDefault();
-    setUploading(true);
+    if (!validate()) return;
 
+    setUploading('saving');
     try {
-      const slug = title
-        .toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '') + '-' + Date.now();
-
+      const slug = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
       let beatId = currentBeatId;
 
       if (!currentBeatId) {
         const res = await fetch('/api/beats', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            slug,
-            genre: category,
-            mood: moods.join(', '),
-            bpm,
-            musical_key: musicalKey,
-            price,
-            status: 'published',
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            title, slug, genre: category, mood: moods.join(', '), 
+            bpm, musical_key: musicalKey, price, status: 'published',
+            licenses_json: JSON.stringify(selectedLicenses)
           }),
         });
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || 'Erreur création du beat');
-        }
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Erreur création');
         const created = await res.json();
         beatId = created.id;
       } else {
         const res = await fetch(`/api/beats/${currentBeatId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            genre: category,
-            mood: moods.join(', '),
-            bpm,
-            musical_key: musicalKey,
-            price,
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            title, genre: category, mood: moods.join(', '), 
+            bpm, musical_key: musicalKey, price,
+            licenses_json: JSON.stringify(selectedLicenses)
           }),
         });
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || 'Erreur mise à jour du beat');
-        }
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Erreur mise à jour');
       }
 
-      const uploadedUrls: Record<string, string> = {};
-
-      const uploadOne = async (file: File, key: keyof typeof uploadProgress, fileName: string) => {
-        const blob = await upload(`beats/${slug}/${fileName}`, file, {
-          access: 'public',
-          handleUploadUrl: '/api/upload',
-          onUploadProgress: (progress) => {
-            setUploadProgress((prev) => ({
-              ...prev,
-              [key]: Math.round(progress.percentage),
-            }));
-          },
-        });
-        uploadedUrls[key] = blob.url;
-      };
-
-      const uploadTasks: Promise<void>[] = [];
-      if (files.cover) uploadTasks.push(uploadOne(files.cover, 'cover', 'cover.webp'));
-      if (files.previewMp3) uploadTasks.push(uploadOne(files.previewMp3, 'previewMp3', 'preview.mp3'));
-      if (files.masterWav) uploadTasks.push(uploadOne(files.masterWav, 'masterWav', 'master.wav'));
-
-      if (uploadTasks.length > 0) {
-        await Promise.all(uploadTasks);
-
-        const res = await fetch(`/api/beats/${beatId}/files`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(uploadedUrls),
-        });
-
-        if (!res.ok) throw new Error('Erreur enregistrement des URLs de fichiers');
+      if (uploadedFiles.length > 0) {
+        const urls: Record<string, string> = {};
+        const keyMap: Record<string, string> = { 'cover': 'cover_url', 'previewMp3': 'preview_url', 'masterWav': 'master_url', 'stemsZip': 'stems_url' };
+        uploadedFiles.forEach(f => { urls[keyMap[f.key] || f.key] = f.url; });
+        await fetch(`/api/beats/${beatId}/files`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(urls) });
       }
 
-      setIsModalOpen(false);
-      resetForm();
-      fetchBeats();
+      setIsModalOpen(false); resetForm(); fetchBeats();
     } catch (err) {
-      console.error(err);
-      alert('Erreur lors de l\'enregistrement du beat : ' + (err instanceof Error ? err.message : ''));
+      alert('Erreur: ' + (err instanceof Error ? err.message : 'Inconnue'));
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
   }
 
   function resetForm() {
-    setCurrentBeatId('');
-    setTitle('');
-    setPrice(29);
-    setCategory('');
-    setBpm(140);
-    setMusicalKey('');
-    setMoods([]);
-    setMoodInput('');
-    setFiles({});
-    setUploadProgress({ cover: 0, previewMp3: 0, masterWav: 0, stemsZip: 0 });
+    setCurrentBeatId(''); setTitle(''); setPrice(29); setCategory('');
+    setBpm(''); setMusicalKey(''); setMoods([]);
+    setSelectedLicenses(['mp3', 'wav', 'stems', 'exclusive']);
+    setUploadedFiles([]); setUploadProgresses([]); setErrors({});
   }
+
+  const isNew = !currentBeatId;
 
   return (
     <div className="space-y-6">
@@ -260,108 +251,67 @@ export default function AdminBeatsPage() {
         </div>
         <div className="flex items-center gap-3">
           {selectedIds.length > 0 && (
-            <button
-              onClick={handleBatchDelete}
-              className="flex items-center gap-2 bg-red-600/20 text-red-400 border border-red-600/50 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-red-600 hover:text-white transition-all"
-            >
+            <button onClick={handleBatchDelete} className="flex items-center gap-2 bg-red-600/20 text-red-400 border border-red-600/50 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-red-600 hover:text-white transition-all">
               <Trash2 className="w-4 h-4" /> Supprimer ({selectedIds.length})
             </button>
           )}
-          <button
-            onClick={() => { resetForm(); setIsModalOpen(true); }}
-            className="flex items-center gap-2 bg-[#ff6b35] text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-[#e05a2b] transition-all"
-          >
+          <button onClick={() => { resetForm(); setIsModalOpen(true); }} className="flex items-center gap-2 bg-[#ff6b35] text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-[#e05a2b] transition-all">
             <Plus className="w-4 h-4" /> Ajouter un Beat
           </button>
         </div>
       </div>
 
+      {/* Table des beats */}
       <div className="bg-[#171513] border border-[#26221f] rounded-2xl overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-[#26221f] text-gray-400 text-xs uppercase">
-              <th className="p-4 w-10">
-                <button onClick={toggleSelectAll}>
-                  {selectedIds.length > 0 && selectedIds.length === beats.length ? (
-                    <CheckSquare className="w-4 h-4 text-[#ff6b35]" />
-                  ) : (
-                    <Square className="w-4 h-4 text-gray-600" />
-                  )}
-                </button>
-              </th>
+              <th className="p-4 w-10"><button onClick={toggleSelectAll}>{selectedIds.length === beats.length ? <CheckSquare className="w-4 h-4 text-[#ff6b35]" /> : <Square className="w-4 h-4 text-gray-600" />}</button></th>
               <th className="p-4">Titre</th>
               <th className="p-4">BPM / Gamme</th>
               <th className="p-4">Prix</th>
+              <th className="p-4">Licences</th>
               <th className="p-4">Statut</th>
               <th className="p-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#26221f] text-sm">
             {loading ? (
-              <tr><td colSpan={6} className="p-6 text-center text-gray-500">Chargement...</td></tr>
+              <tr><td colSpan={7} className="p-6 text-center text-gray-500">Chargement...</td></tr>
             ) : beats.length === 0 ? (
-              <tr><td colSpan={6} className="p-6 text-center text-gray-500">Aucun beat trouvé.</td></tr>
+              <tr><td colSpan={7} className="p-6 text-center text-gray-500">Aucun beat trouvé.</td></tr>
             ) : (
               beats.map((beat) => {
                 const isSelected = selectedIds.includes(beat.id);
+                const licenseCount = beat.licenses?.length || 0;
                 return (
                   <tr key={beat.id} className="hover:bg-[#201d1a] transition-colors">
-                    <td className="p-4">
-                      <button onClick={() => toggleSelectOne(beat.id)}>
-                        {isSelected ? <CheckSquare className="w-4 h-4 text-[#ff6b35]" /> : <Square className="w-4 h-4 text-gray-600" />}
-                      </button>
-                    </td>
+                    <td className="p-4"><button onClick={() => toggleSelectOne(beat.id)}>{isSelected ? <CheckSquare className="w-4 h-4 text-[#ff6b35]" /> : <Square className="w-4 h-4 text-gray-600" />}</button></td>
                     <td className="p-4 font-semibold text-white flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0">
                         {beat.cover ? <img src={beat.cover} alt="" className="w-full h-full object-cover" /> : <Music className="w-5 h-5 m-2.5 text-gray-500" />}
                       </div>
-                      <div>
-                        <p>{beat.title}</p>
-                        <span className="text-xs text-gray-400 font-normal">{beat.category}</span>
-                      </div>
+                      <div><p>{beat.title}</p><span className="text-xs text-gray-400 font-normal">{beat.category}</span></div>
                     </td>
-                    <td className="p-4 text-gray-300 text-xs">
-                      {beat.bpm ? `${beat.bpm} BPM` : 'N/A'} {beat.musicalKey ? `/ ${beat.musicalKey}` : ''}
-                    </td>
+                    <td className="p-4 text-gray-300 text-xs">{beat.bpm ? `${beat.bpm} BPM` : 'N/A'} {beat.musicalKey ? `/ ${beat.musicalKey}` : ''}</td>
                     <td className="p-4 text-white font-medium">{beat.price} $</td>
                     <td className="p-4">
-                      <button
-                        onClick={() => toggleVisibility(beat.id, beat.visible)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                          beat.visible ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-                        }`}
-                      >
-                        {beat.visible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                        {beat.visible ? 'Visible' : 'Masqué'}
+                      <span className="text-xs text-gray-400">{licenseCount} licence{licenseCount > 1 ? 's' : ''}</span>
+                    </td>
+                    <td className="p-4">
+                      <button onClick={() => toggleVisibility(beat.id, beat.visible)} className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${beat.visible ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'}`}>
+                        {beat.visible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}{beat.visible ? 'Visible' : 'Masqué'}
                       </button>
                     </td>
                     <td className="p-4 text-right space-x-2">
-                      <button
-                        onClick={() => {
-                          setCurrentBeatId(beat.id);
-                          setTitle(beat.title);
-                          setPrice(beat.price);
-                          setCategory(beat.category || '');
-                          setBpm(beat.bpm || 140);
-                          setMusicalKey(beat.musicalKey || '');
-                          setMoods(beat.moods || []);
-                          setIsModalOpen(true);
-                        }}
-                        className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (confirm('Supprimer ce beat ?')) {
-                            await fetch(`/api/beats/${beat.id}`, { method: 'DELETE' });
-                            fetchBeats();
-                          }
-                        }}
-                        className="p-2 bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <button onClick={() => { 
+                        setCurrentBeatId(beat.id); setTitle(beat.title); setPrice(beat.price); 
+                        setCategory(beat.category || ''); setBpm(beat.bpm || ''); 
+                        setMusicalKey(beat.musicalKey || ''); setMoods(beat.moods || []);
+                        setSelectedLicenses(beat.licenses || ['mp3', 'wav', 'stems', 'exclusive']);
+                        setIsModalOpen(true); 
+                      }} className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"><Edit className="w-4 h-4" /></button>
+                      <button onClick={async () => { if (confirm('Supprimer ce beat ?')) { await fetch(`/api/beats/${beat.id}`, { method: 'DELETE' }); fetchBeats(); } }} className="p-2 bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </td>
                   </tr>
                 );
@@ -371,178 +321,271 @@ export default function AdminBeatsPage() {
         </table>
       </div>
 
+      {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#171513] border border-[#26221f] rounded-2xl w-full max-w-2xl p-6 space-y-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-white">{currentBeatId ? 'Modifier le Beat' : 'Ajouter un nouveau Beat'}</h3>
+          <div className="bg-[#171513] border border-[#26221f] rounded-2xl w-full max-w-3xl p-6 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-white">{isNew ? 'Ajouter un nouveau Beat' : 'Modifier le Beat'}</h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-white hover:bg-[#201d1a] rounded-lg"><X className="w-5 h-5" /></button>
+            </div>
 
-            <form onSubmit={handleSaveBeat} className="space-y-4">
+            {Object.keys(errors).length > 0 && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-red-400">
+                  <p className="font-bold mb-1">Champs obligatoires manquants :</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    {Object.values(errors).map((err, i) => <li key={i}>{err}</li>)}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveBeat} className="space-y-5">
+              {/* Titre */}
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Titre du Beat</label>
-                <input
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#ff6b35]"
-                />
+                <label className="block text-xs text-gray-400 mb-1">Titre du Beat <span className="text-red-400">*</span></label>
+                <input type="text" required value={title} onChange={(e) => { setTitle(e.target.value); setErrors(prev => { const e = {...prev}; delete e.title; return e; }); }}
+                  className={`w-full bg-[#201d1a] border rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none ${errors.title ? 'border-red-500' : 'border-[#332e2a] focus:border-[#ff6b35]'}`} />
+                {errors.title && <p className="text-[10px] text-red-400 mt-1">{errors.title}</p>}
               </div>
 
+              {/* Prix, BPM, Gamme, Catégorie */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Prix ($)</label>
-                  <input
-                    type="number"
-                    required
-                    value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#ff6b35]"
-                  />
+                  <label className="block text-xs text-gray-400 mb-1">Prix ($) <span className="text-red-400">*</span></label>
+                  <input type="number" required value={price} onChange={(e) => { setPrice(Number(e.target.value)); setErrors(prev => { const e = {...prev}; delete e.price; return e; }); }}
+                    className={`w-full bg-[#201d1a] border rounded-xl px-3 py-2 text-white text-sm focus:outline-none ${errors.price ? 'border-red-500' : 'border-[#332e2a] focus:border-[#ff6b35]'}`} />
+                  {errors.price && <p className="text-[10px] text-red-400 mt-1">{errors.price}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">BPM</label>
-                  <input
-                    type="number"
-                    value={bpm}
-                    onChange={(e) => setBpm(Number(e.target.value))}
-                    className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#ff6b35]"
-                  />
+                  <label className="block text-xs text-gray-400 mb-1">BPM <span className="text-red-400">*</span></label>
+                  <input type="number" value={bpm} onChange={(e) => { setBpm(e.target.value === '' ? '' : Number(e.target.value)); setErrors(prev => { const e = {...prev}; delete e.bpm; return e; }); }}
+                    className={`w-full bg-[#201d1a] border rounded-xl px-3 py-2 text-white text-sm focus:outline-none ${errors.bpm ? 'border-red-500' : 'border-[#332e2a] focus:border-[#ff6b35]'}`} />
+                  {errors.bpm && <p className="text-[10px] text-red-400 mt-1">{errors.bpm}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Gamme (Key)</label>
-                  <input
-                    type="text"
-                    placeholder="ex: Am, C#m"
-                    value={musicalKey}
-                    onChange={(e) => setMusicalKey(e.target.value)}
-                    className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#ff6b35]"
-                  />
+                  <label className="block text-xs text-gray-400 mb-1">Gamme <span className="text-red-400">*</span></label>
+                  <select value={musicalKey} onChange={(e) => { setMusicalKey(e.target.value); setErrors(prev => { const e = {...prev}; delete e.musicalKey; return e; }); }}
+                    className={`w-full bg-[#201d1a] border rounded-xl px-3 py-2 text-white text-sm focus:outline-none ${errors.musicalKey ? 'border-red-500' : 'border-[#332e2a] focus:border-[#ff6b35]'}`}>
+                    <option value="">Sélectionner...</option>
+                    {MUSICAL_KEYS.map(key => <option key={key} value={key}>{key}</option>)}
+                  </select>
+                  {errors.musicalKey && <p className="text-[10px] text-red-400 mt-1">{errors.musicalKey}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Catégorie</label>
-                  <input
-                    type="text"
-                    placeholder="Trap, Drill..."
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#ff6b35]"
-                  />
+                  <label className="block text-xs text-gray-400 mb-1">Catégorie <span className="text-red-400">*</span></label>
+                  <select value={category} onChange={(e) => { setCategory(e.target.value); setErrors(prev => { const e = {...prev}; delete e.category; return e; }); }}
+                    className={`w-full bg-[#201d1a] border rounded-xl px-3 py-2 text-white text-sm focus:outline-none ${errors.category ? 'border-red-500' : 'border-[#332e2a] focus:border-[#ff6b35]'}`}>
+                    <option value="">Sélectionner...</option>
+                    {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                  {errors.category && <p className="text-[10px] text-red-400 mt-1">{errors.category}</p>}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Moods & Styles (Tags)</label>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    placeholder="Ajouter un mood (ex: Dark, Energetic...)"
-                    value={moodInput}
-                    onChange={(e) => setMoodInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addMood(); } }}
-                    className="flex-1 bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[#ff6b35]"
-                  />
-                  <button
-                    type="button"
-                    onClick={addMood}
-                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold rounded-xl transition-colors"
-                  >
-                    Ajouter
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {moods.map((m, index) => (
-                    <span key={index} className="inline-flex items-center gap-1 px-3 py-1 bg-[#ff6b35]/20 text-[#ff6b35] border border-[#ff6b35]/30 rounded-lg text-xs font-medium">
-                      {m}
-                      <button type="button" onClick={() => removeMood(m)}>
-                        <X className="w-3 h-3 hover:text-white" />
-                      </button>
+              {/* Moods */}
+              <div ref={moodDropdownRef}>
+                <label className="block text-xs text-gray-400 mb-1">Moods & Styles</label>
+                <div className="relative">
+                  <button type="button" onClick={() => setShowMoodDropdown(!showMoodDropdown)}
+                    className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-sm text-left focus:outline-none focus:border-[#ff6b35] flex items-center justify-between">
+                    <span className={moods.length === 0 ? 'text-gray-500' : ''}>
+                      {moods.length === 0 ? 'Sélectionner des moods...' : `${moods.length} mood(s) sélectionné(s)`}
                     </span>
-                  ))}
+                    <span className="text-gray-400 text-xs">{moods.length > 0 && moods.slice(0, 3).join(', ')}{moods.length > 3 ? '...' : ''}</span>
+                  </button>
+                  {showMoodDropdown && (
+                    <div className="absolute z-10 mt-1 w-full bg-[#201d1a] border border-[#332e2a] rounded-xl shadow-2xl max-h-48 overflow-y-auto p-2 grid grid-cols-2 gap-1">
+                      {MOOD_TAGS.map(mood => (
+                        <button key={mood} type="button" onClick={() => toggleMood(mood)}
+                          className={`text-left px-3 py-1.5 rounded-lg text-xs transition-all ${moods.includes(mood) ? 'bg-[#ff6b35] text-white' : 'text-gray-400 hover:bg-[#332e2a] hover:text-white'}`}>
+                          {moods.includes(mood) ? '✓ ' : ''}{mood}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                {moods.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {moods.map(m => (
+                      <span key={m} className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#ff6b35]/20 text-[#ff6b35] border border-[#ff6b35]/30 rounded-lg text-[10px] font-medium">
+                        {m} <button type="button" onClick={() => toggleMood(m)}><X className="w-3 h-3 hover:text-white" /></button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
+              {/* Uploads */}
               <div className="space-y-3 pt-2 border-t border-[#26221f]">
                 <h4 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Upload className="w-4 h-4 text-[#ff6b35]" /> Fichiers Multimédias & Audio
+                  <Upload className="w-4 h-4 text-[#ff6b35]" /> Fichiers {isNew && <span className="text-[10px] text-red-400 font-normal">(Au moins un fichier audio requis)</span>}
                 </h4>
 
-                <div className="bg-[#201d1a] p-3 rounded-xl border border-[#332e2a]">
-                  <label className="block text-xs text-gray-400 mb-1">Image de couverture</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFiles({ ...files, cover: e.target.files?.[0] })}
-                    className="text-xs text-gray-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#ff6b35] file:text-white hover:file:bg-[#e05a2b]"
-                  />
-                  {files.cover && <p className="text-xs text-emerald-400 mt-1">Fichier sélectionné : {files.cover.name}</p>}
-                  {uploading && uploadProgress.cover > 0 && (
-                    <div className="mt-2 w-full bg-gray-800 rounded-full h-2 overflow-hidden">
-                      <div className="bg-[#ff6b35] h-2 transition-all duration-200" style={{ width: `${uploadProgress.cover}%` }}></div>
-                    </div>
-                  )}
+                {/* Cover */}
+                <div className={`bg-[#201d1a] p-4 rounded-xl border ${errors.cover ? 'border-red-500' : 'border-[#332e2a]'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-gray-400">Cover (Image) {isNew && <span className="text-red-400">*</span>}</label>
+                    {uploadedFiles.some(f => f.key === 'cover') && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input ref={el => { fileInputRefs.current['cover'] = el; }} type="file" accept="image/*"
+                      onChange={(e) => { if (e.target.files?.[0]) uploadSingleFile(e.target.files[0], 'cover'); }} className="hidden" />
+                    <button type="button" onClick={() => fileInputRefs.current['cover']?.click()} disabled={uploading === 'cover'}
+                      className="px-4 py-2 bg-[#332e2a] text-white text-xs font-semibold rounded-xl hover:bg-[#4a3f38] disabled:opacity-50 transition-all">
+                      {uploading === 'cover' ? 'Upload...' : 'Choisir une image'}
+                    </button>
+                    {uploadProgresses.find(p => p.key === 'cover') && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full border-2 border-[#ff6b35] border-t-transparent animate-spin" />
+                        <span className="text-xs text-[#ff6b35]">{uploadProgresses.find(p => p.key === 'cover')!.progress}%</span>
+                      </div>
+                    )}
+                    {uploadedFiles.find(f => f.key === 'cover')?.name && (
+                      <span className="text-xs text-emerald-400 flex items-center gap-2">
+                        {uploadedFiles.find(f => f.key === 'cover')!.name}
+                        <button type="button" onClick={() => removeFile('cover')} className="text-red-400 hover:text-red-300"><X className="w-3 h-3" /></button>
+                      </span>
+                    )}
+                  </div>
+                  {errors.cover && <p className="text-[10px] text-red-400 mt-1">{errors.cover}</p>}
                 </div>
 
-                <div className="bg-[#201d1a] p-3 rounded-xl border border-[#332e2a]">
-                  <label className="block text-xs text-gray-400 mb-1">Aperçu MP3</label>
-                  <input
-                    type="file"
-                    accept="audio/mp3,audio/mpeg"
-                    onChange={(e) => setFiles({ ...files, previewMp3: e.target.files?.[0] })}
-                    className="text-xs text-gray-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#ff6b35] file:text-white hover:file:bg-[#e05a2b]"
-                  />
-                  {files.previewMp3 && <p className="text-xs text-emerald-400 mt-1">Fichier sélectionné : {files.previewMp3.name}</p>}
-                  {uploading && uploadProgress.previewMp3 > 0 && (
-                    <div className="mt-2 w-full bg-gray-800 rounded-full h-2 overflow-hidden">
-                      <div className="bg-[#ff6b35] h-2 transition-all duration-200" style={{ width: `${uploadProgress.previewMp3}%` }}></div>
-                    </div>
-                  )}
+                {/* Preview MP3 */}
+                <div className={`bg-[#201d1a] p-4 rounded-xl border ${errors.audio ? 'border-red-500' : 'border-[#332e2a]'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-gray-400">Aperçu MP3 (Recommandé)</label>
+                    {uploadedFiles.some(f => f.key === 'previewMp3') && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input ref={el => { fileInputRefs.current['previewMp3'] = el; }} type="file" accept="audio/mp3,audio/mpeg"
+                      onChange={(e) => { if (e.target.files?.[0]) uploadSingleFile(e.target.files[0], 'previewMp3'); }} className="hidden" />
+                    <button type="button" onClick={() => fileInputRefs.current['previewMp3']?.click()} disabled={uploading === 'previewMp3'}
+                      className="px-4 py-2 bg-[#332e2a] text-white text-xs font-semibold rounded-xl hover:bg-[#4a3f38] disabled:opacity-50 transition-all">
+                      {uploading === 'previewMp3' ? 'Upload...' : 'Choisir MP3'}
+                    </button>
+                    {uploadProgresses.find(p => p.key === 'previewMp3') && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full border-2 border-[#ff6b35] border-t-transparent animate-spin" />
+                        <span className="text-xs text-[#ff6b35]">{uploadProgresses.find(p => p.key === 'previewMp3')!.progress}%</span>
+                      </div>
+                    )}
+                    {uploadedFiles.find(f => f.key === 'previewMp3')?.name && (
+                      <span className="text-xs text-emerald-400 flex items-center gap-2">
+                        {uploadedFiles.find(f => f.key === 'previewMp3')!.name}
+                        <button type="button" onClick={() => removeFile('previewMp3')} className="text-red-400 hover:text-red-300"><X className="w-3 h-3" /></button>
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="bg-[#201d1a] p-3 rounded-xl border border-[#332e2a]">
-                  <label className="block text-xs text-gray-400 mb-1">Fichier Master WAV</label>
-                  <input
-                    type="file"
-                    accept="audio/wav"
-                    onChange={(e) => setFiles({ ...files, masterWav: e.target.files?.[0] })}
-                    className="text-xs text-gray-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#ff6b35] file:text-white hover:file:bg-[#e05a2b]"
-                  />
-                  {files.masterWav && <p className="text-xs text-emerald-400 mt-1">Fichier sélectionné : {files.masterWav.name}</p>}
-                  {uploading && uploadProgress.masterWav > 0 && (
-                    <div className="mt-2 w-full bg-gray-800 rounded-full h-2 overflow-hidden">
-                      <div className="bg-[#ff6b35] h-2 transition-all duration-200" style={{ width: `${uploadProgress.masterWav}%` }}></div>
-                    </div>
-                  )}
+                {/* Master WAV */}
+                <div className={`bg-[#201d1a] p-4 rounded-xl border ${errors.audio ? 'border-red-500' : 'border-[#332e2a]'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-gray-400">Master WAV</label>
+                    {uploadedFiles.some(f => f.key === 'masterWav') && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input ref={el => { fileInputRefs.current['masterWav'] = el; }} type="file" accept="audio/wav"
+                      onChange={(e) => { if (e.target.files?.[0]) uploadSingleFile(e.target.files[0], 'masterWav'); }} className="hidden" />
+                    <button type="button" onClick={() => fileInputRefs.current['masterWav']?.click()} disabled={uploading === 'masterWav'}
+                      className="px-4 py-2 bg-[#332e2a] text-white text-xs font-semibold rounded-xl hover:bg-[#4a3f38] disabled:opacity-50 transition-all">
+                      {uploading === 'masterWav' ? 'Upload...' : 'Choisir WAV'}
+                    </button>
+                    {uploadProgresses.find(p => p.key === 'masterWav') && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full border-2 border-[#ff6b35] border-t-transparent animate-spin" />
+                        <span className="text-xs text-[#ff6b35]">{uploadProgresses.find(p => p.key === 'masterWav')!.progress}%</span>
+                      </div>
+                    )}
+                    {uploadedFiles.find(f => f.key === 'masterWav')?.name && (
+                      <span className="text-xs text-emerald-400 flex items-center gap-2">
+                        {uploadedFiles.find(f => f.key === 'masterWav')!.name}
+                        <button type="button" onClick={() => removeFile('masterWav')} className="text-red-400 hover:text-red-300"><X className="w-3 h-3" /></button>
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="bg-[#201d1a] p-3 rounded-xl border border-[#332e2a] opacity-50">
-                  <label className="block text-xs text-gray-400 mb-1">
-                    Pistes séparées (Stems ZIP) — <span className="text-[#ff6b35]">Bientôt disponible</span>
-                  </label>
-                  <input
-                    type="file"
-                    accept=".zip,.rar"
-                    disabled
-                    className="text-xs text-gray-500 cursor-not-allowed"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Cette option sera réactivée après mise à niveau du stockage.</p>
+                {/* Stems - Grisé */}
+                <div className="bg-[#201d1a] p-4 rounded-xl border border-[#332e2a] opacity-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-gray-400">Pistes séparées (Stems ZIP)</label>
+                    <span className="text-[10px] text-[#ff6b35] bg-[#ff6b35]/10 px-2 py-0.5 rounded-full">Bientôt disponible</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button type="button" disabled className="px-4 py-2 bg-[#332e2a] text-gray-500 text-xs font-semibold rounded-xl cursor-not-allowed">
+                      Choisir un fichier
+                    </button>
+                    <span className="text-[10px] text-gray-500">Cette option sera réactivée après mise à niveau du stockage.</span>
+                  </div>
                 </div>
+                
+                {errors.audio && <p className="text-[10px] text-red-400">{errors.audio}</p>}
+
+                {/* Résumé fichiers uploadés */}
+                {uploadedFiles.length > 0 && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3">
+                    <p className="text-[10px] text-emerald-400 font-bold uppercase mb-2">Fichiers prêts ({uploadedFiles.length}) :</p>
+                    <div className="space-y-1">
+                      {uploadedFiles.map(f => (
+                        <div key={f.key} className="flex items-center justify-between text-xs text-emerald-300">
+                          <span className="flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            {f.key === 'cover' ? 'Cover' : f.key === 'previewMp3' ? 'Preview MP3' : f.key === 'masterWav' ? 'Master WAV' : f.key}
+                            : {f.name}
+                          </span>
+                          <button type="button" onClick={() => removeFile(f.key)} className="text-red-400 hover:text-red-300"><X className="w-3 h-3" /></button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {/* Licences disponibles */}
+              <div className="space-y-3 pt-2 border-t border-[#26221f]">
+                <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <CheckSquare className="w-4 h-4 text-[#ff6b35]" /> Licences disponibles <span className="text-[10px] text-red-400 font-normal">*</span>
+                </h4>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    { id: 'mp3', name: 'MP3 Lease', price: '29.99 $' },
+                    { id: 'wav', name: 'WAV Premium', price: '49.99 $' },
+                    { id: 'stems', name: 'Trackout / Stems', price: '149.00 $' },
+                    { id: 'exclusive', name: 'Exclusive Rights', price: '997.00 $' },
+                  ].map(lic => (
+                    <label key={lic.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                      selectedLicenses.includes(lic.id) ? 'bg-[#ff6b35]/10 border-[#ff6b35]/50' : 'bg-[#201d1a] border-[#332e2a] hover:border-gray-500'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedLicenses.includes(lic.id)}
+                        onChange={() => toggleLicense(lic.id)}
+                        className="w-4 h-4 rounded accent-[#ff6b35]"
+                      />
+                      <div>
+                        <span className="text-sm font-bold text-white">{lic.name}</span>
+                        <p className="text-[10px] text-gray-400">{lic.price}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {errors.licenses && <p className="text-[10px] text-red-400">{errors.licenses}</p>}
+              </div>
+
+              {/* Boutons */}
               <div className="flex justify-end gap-3 pt-4 border-t border-[#26221f]">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={uploading}
-                  className="px-4 py-2 bg-gray-800 text-gray-300 rounded-xl text-xs font-semibold hover:bg-gray-700 transition-colors"
-                >
+                <button type="button" onClick={() => setIsModalOpen(false)} disabled={uploading !== null}
+                  className="px-4 py-2 bg-gray-800 text-gray-300 rounded-xl text-xs font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50">
                   Annuler
                 </button>
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="px-6 py-2 bg-[#ff6b35] text-white rounded-xl text-xs font-semibold hover:bg-[#e05a2b] transition-colors disabled:opacity-50"
-                >
-                  {uploading ? 'Envoi en cours...' : 'Enregistrer'}
+                <button type="submit" disabled={uploading !== null}
+                  className="px-6 py-2 bg-[#ff6b35] text-white rounded-xl text-xs font-semibold hover:bg-[#e05a2b] transition-colors disabled:opacity-50 flex items-center gap-2">
+                  {uploading === 'saving' ? 'Publication...' : 'Publier le Beat'}
                 </button>
               </div>
             </form>

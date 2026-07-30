@@ -2,74 +2,63 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LayoutDashboard, Music, Package, Tags, Settings, CreditCard, BarChart3, Globe, ListMusic, MessageSquare, Users, Layers } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const navItems = [
-    { name: 'Catalogue', href: '/admin/beats' },
-    { name: 'Sound Kits', href: '/admin/kits' },
-    { name: 'Licences & Prix', href: '/admin/licenses' },
-    { name: 'Settings', href: '/admin/settings' },
-    { name: 'Liens & Paiements', href: '/admin/sales' },
-    { name: 'Analytics', href: '/admin/analytics' },
-    { name: 'Promo & SEO', href: '/admin/promo' }, // Assure-toi d'avoir un dossier /admin/promo si tu veux y mettre les codes promo, ou garde /admin/analytics pour les promos et un autre pour les stats
-    { name: 'Playlist Spotify', href: '/admin/playlist' },
-    { name: 'Commentaires', href: '/admin/comments' },
-    { name: 'Utilisateurs', href: '/admin/users' },
+    { name: 'Tableau de Bord', href: '/admin', icon: LayoutDashboard },
+    { name: 'Catalogue', href: '/admin/beats', icon: Music },
+    { name: 'Sound Kits', href: '/admin/kits', icon: Package },
+    { name: 'Licences & Prix', href: '/admin/licenses', icon: Tags },
+    { name: 'Pages', href: '/admin/pages', icon: Layers },
+    { name: 'Settings', href: '/admin/settings', icon: Settings },
+    { name: 'Liens & Paiements', href: '/admin/sales', icon: CreditCard },
+    { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+    { name: 'Promo & SEO', href: '/admin/promo', icon: Globe },
+    { name: 'Playlist Spotify', href: '/admin/playlist', icon: ListMusic },
+    { name: 'Commentaires', href: '/admin/comments', icon: MessageSquare },
+    { name: 'Utilisateurs', href: '/admin/users', icon: Users },
   ];
 
   return (
-    <div style={{ padding: '30px', color: '#fff', background: '#0f0e0d', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="min-h-screen bg-[#0f0e0d] text-white font-sans">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6">
         
-        {/* En-tête ESPACE PRIVÉ / CONTROL CENTER */}
-        <div style={{ marginBottom: '15px' }}>
-          <span style={{ fontSize: '10px', color: '#888', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+        {/* En-tête */}
+        <div className="mb-6">
+          <span className="text-[10px] text-gray-500 tracking-[1.5px] uppercase">
             ESPACE PRIVÉ - HEAVIEX'O
           </span>
-          <h1 style={{ fontSize: '28px', fontWeight: '900', letterSpacing: '1px', color: '#fff', textTransform: 'uppercase', marginTop: '2px' }}>
-            CONTROL CENTER
+          <h1 className="text-2xl md:text-3xl font-black tracking-wide text-white uppercase mt-1">
+            Control Center
           </h1>
         </div>
 
-        {/* Barre de navigation principale */}
-        <div style={{ 
-          background: '#171513', 
-          padding: '15px 20px', 
-          borderRadius: '16px', 
-          border: '1px solid #26221f', 
-          marginBottom: '35px', 
-          display: 'flex', 
-          gap: '20px', 
-          overflowX: 'auto', 
-          alignItems: 'center',
-          whiteSpace: 'nowrap'
-        }}>
+        {/* Navigation */}
+        <nav className="bg-[#171513] p-4 rounded-2xl border border-[#26221f] mb-8 flex gap-2 overflow-x-auto items-center whitespace-nowrap scrollbar-none">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+            const Icon = item.icon;
             return (
               <Link 
                 key={item.href} 
                 href={item.href}
-                style={{ 
-                  color: isActive ? '#fff' : '#888', 
-                  fontSize: '13px', 
-                  textDecoration: 'none',
-                  fontWeight: isActive ? '600' : 'normal',
-                  background: isActive ? '#ff6b35' : 'transparent',
-                  padding: isActive ? '8px 16px' : '0',
-                  borderRadius: isActive ? '20px' : '0',
-                  transition: 'all 0.2s ease'
-                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all flex-shrink-0 ${
+                  isActive 
+                    ? 'bg-[#ff6b35] text-white' 
+                    : 'text-gray-400 hover:text-white hover:bg-[#201d1a]'
+                }`}
               >
+                <Icon className="w-3.5 h-3.5" />
                 {item.name}
               </Link>
             );
           })}
-        </div>
+        </nav>
 
-        {/* Contenu de la sous-page active */}
+        {/* Contenu */}
         <main>
           {children}
         </main>
