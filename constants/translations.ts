@@ -1,4 +1,3 @@
-cat > constants/translations.ts << 'EOF'
 export const translations = {
   FR: {
     beatstore: "Beatstore",
@@ -247,4 +246,3 @@ export const translations = {
     ]
   }
 };
-EOF
