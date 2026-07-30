@@ -129,6 +129,21 @@ export default function BeatstorePage() {
   const footerText = branding?.footerText || t.footerDesc;
   const heroBeat = beatsList.find((b: Beat) => b.featured) || beatsList[0];
 
+  // LOADER SKELETON
+  if (beatsList.length === 0) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
+        <div className="w-12 h-12 border-2 border-[#C66B3D] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[#C66B3D] text-sm font-medium uppercase tracking-wider">Chargement du catalogue...</p>
+        <div className="flex gap-2 mt-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="w-3 h-3 rounded-full bg-[#C66B3D] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-[#F4F0EB] font-sans pt-24 pb-24 relative overflow-x-hidden">
       <style>{waveAnimation}</style>
