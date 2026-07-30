@@ -47,6 +47,7 @@ export const beats = pgTable('beats', {
   stemsUrl: text('stems_url'),
   status: text('status').notNull().default('draft'),
   visible: integer('visible').default(1),
+  featured: integer('featured').default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -126,6 +127,7 @@ export const kits = pgTable('kits', {
   fileSize: text('file_size'),
   price: real('price'),
   visible: integer('visible').default(1),
+  featured: integer('featured').default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

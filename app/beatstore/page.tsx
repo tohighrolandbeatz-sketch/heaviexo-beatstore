@@ -127,7 +127,7 @@ export default function BeatstorePage() {
   };
 
   const footerText = branding?.footerText || t.footerDesc;
-  const heroBeat = beatsList[0];
+  const heroBeat = beatsList.find(b => b.featured) || beatsList[0];
 
   return (
     <div className="min-h-screen bg-black text-[#F4F0EB] font-sans pt-24 pb-24 relative overflow-x-hidden">

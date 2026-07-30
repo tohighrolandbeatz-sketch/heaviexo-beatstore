@@ -19,6 +19,7 @@ export interface Beat {
   description: string;
   visible?: boolean;
   licenses_json?: string;
+  featured?: boolean;
   comments?: Comment[];
 }
 
