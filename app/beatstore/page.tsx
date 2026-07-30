@@ -137,10 +137,10 @@ export default function BeatstorePage() {
       <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} setViewMode={() => {}} t={t} />
 
       {!detailedBeat && heroBeat && (
-        <section className="relative w-full flex items-center justify-center mb-12 md:mb-20 overflow-hidden bg-black">
-          <div className="relative w-full" style={{ aspectRatio: '4/3', maxHeight: '70vh' }}>
-            <img src={heroBeat.cover} alt={heroBeat.title} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/50" />
+        <section className="relative w-full mb-12 md:mb-20 overflow-hidden bg-black">
+          <div className="relative w-full max-h-[60vh] overflow-hidden">
+            <img src={heroBeat.cover} alt={heroBeat.title} className="w-full h-full object-contain bg-black" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
             <div className="absolute inset-0 flex flex-col items-center justify-end p-6 md:p-10 text-center">
               <span className="inline-block px-3 py-1 mb-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest rounded-full bg-[#C66B3D]/20 text-[#C66B3D] border border-[#C66B3D]/30 backdrop-blur-sm">Dernière Sortie Exclusive</span>
               <h1 className="text-3xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter mb-4 leading-[0.9] drop-shadow-lg">{heroBeat.title}</h1>
