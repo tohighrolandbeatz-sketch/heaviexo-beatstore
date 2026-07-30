@@ -50,7 +50,7 @@ export function usePlayer() {
       if (audio.paused) { audio.play(); setState(s => ({ ...s, isPlaying: true })); }
       else { audio.pause(); setState(s => ({ ...s, isPlaying: false })); }
     } else {
-      audio.src = beat.previewMp3;
+      audio.pause(); audio.src = beat.previewMp3;
       audio.play();
       setState({ beat, isPlaying: true, currentTime: 0, duration: 0 });
     }
