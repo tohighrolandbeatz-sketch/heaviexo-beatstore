@@ -28,7 +28,25 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const { id } = await params;
     const body = await request.json();
 
-    const updatedBeat = beatRepository.update(id, body);
+    const updatedBeat = await beatRepository.update(id, body);
+
+    if (!updatedBeat) {
+      return NextResponse.json({ error: 'Beat introuvable pour mise à jour' }, { status: 404 });
+    }
+
+    return NextResponse.json(updatedBeat, { status: 200 });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du beat:', error);
+    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: RouteParams) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+
+    const updatedBeat = await beatRepository.update(id, body);
 
     if (!updatedBeat) {
       return NextResponse.json({ error: 'Beat introuvable pour mise à jour' }, { status: 404 });
@@ -44,7 +62,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const success = beatRepository.delete(id);
+    const success = await beatRepository.delete(id);
 
     if (!success) {
       return NextResponse.json({ error: 'Beat introuvable pour suppression' }, { status: 404 });
