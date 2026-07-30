@@ -54,6 +54,7 @@ export function useBeatData() {
         cover: b.cover_url || b.cover || "",
         previewMp3: b.preview_url || b.previewMp3 || "",
         licenses_json: b.licenses_json || "[]",
+        featured: b.featured === 1 || b.featured === true,
         description: b.description || "",
         visible: b.visible !== undefined ? b.visible : b.status !== "draft",
         comments: b.comments || []
