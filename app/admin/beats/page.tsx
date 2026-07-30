@@ -1,5 +1,5 @@
 'use client';
-
+import { upload } from '@vercel/blob/client';
 import { useState, useEffect } from 'react';
 import { Trash2, Edit, Eye, EyeOff, CheckSquare, Square, Upload, Music, Plus, X } from 'lucide-react';
 
@@ -31,7 +31,7 @@ export default function AdminBeatsPage() {
   const [category, setCategory] = useState('');
   const [bpm, setBpm] = useState<number>(140);
   const [musicalKey, setMusicalKey] = useState('');
-  
+
   // Gestion des moods / styles (liste dynamique)
   const [moodInput, setMoodInput] = useState('');
   const [moods, setMoods] = useState<string[]>([]);
@@ -127,46 +127,105 @@ export default function AdminBeatsPage() {
     e.preventDefault();
     setUploading(true);
 
-    const beatId = currentBeatId || `beat_${Date.now()}`;
+    try {
+      // Génère un slug propre à partir du titre
+      const slug = title
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') + '-' + Date.now();
 
-    // Simulation visuelle de progression des fichiers
-    const fileKeys = Object.keys(files) as (keyof typeof files)[];
-    for (const key of fileKeys) {
-      if (files[key]) {
-        for (let p = 0; p <= 100; p += 25) {
-          setUploadProgress((prev) => ({ ...prev, [key]: p }));
-          await new Promise((r) => setTimeout(r, 100));
+      let beatId = currentBeatId;
+
+      // Étape 1 : créer ou mettre à jour le beat (JSON léger, sans fichiers)
+      if (!currentBeatId) {
+        const res = await fetch('/api/beats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            slug,
+            genre: category,
+            mood: moods.join(', '),
+            bpm,
+            musical_key: musicalKey,
+            price,
+            status: 'published',
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Erreur création du beat');
+        }
+        const created = await res.json();
+        beatId = created.id;
+      } else {
+        const res = await fetch(`/api/beats/${currentBeatId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            genre: category,
+            mood: moods.join(', '),
+            bpm,
+            musical_key: musicalKey,
+            price,
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Erreur mise à jour du beat');
         }
       }
-    }
 
-    try {
-      const formData = new FormData();
-      formData.append('id', beatId);
-      formData.append('title', title);
-      formData.append('price', String(price));
-      formData.append('category', category);
-      formData.append('bpm', String(bpm));
-      formData.append('musicalKey', musicalKey);
-      formData.append('moods', JSON.stringify(moods));
+      // Étape 2 : uploader les fichiers directement vers Vercel Blob (contourne le serveur)
+      const uploadedUrls: Record<string, string> = {};
 
-      if (files.cover) formData.append('cover', files.cover);
-      if (files.previewMp3) formData.append('previewMp3', files.previewMp3);
-      if (files.masterWav) formData.append('masterWav', files.masterWav);
-      if (files.stemsZip) formData.append('stemsZip', files.stemsZip);
+      const uploadOne = async (file: File, key: keyof typeof uploadProgress, fileName: string) => {
+        const blob = await upload(`beats/${slug}/${fileName}`, file, {
+          access: 'public',
+          handleUploadUrl: '/api/upload',
+          onUploadProgress: (progress) => {
+            setUploadProgress((prev) => ({
+              ...prev,
+              [key]: Math.round(progress.percentage),
+            }));
+          },
+        });
+        uploadedUrls[key] = blob.url;
+      };
 
-      const res = await fetch('/api/beats', {
-        method: currentBeatId ? 'PUT' : 'POST',
-        body: formData,
-      });
+      const uploadTasks: Promise<void>[] = [];
+      if (files.cover) uploadTasks.push(uploadOne(files.cover, 'cover', 'cover.webp'));
+      if (files.previewMp3) uploadTasks.push(uploadOne(files.previewMp3, 'previewMp3', 'preview.mp3'));
+      if (files.masterWav) uploadTasks.push(uploadOne(files.masterWav, 'masterWav', 'master.wav'));
+      // Stems désactivé temporairement — voir bloc UI plus bas
+      // if (files.stemsZip) {
+      //   const ext = files.stemsZip.name.split('.').pop() || 'zip';
+      //   uploadTasks.push(uploadOne(files.stemsZip, 'stemsZip', `stems.${ext}`));
+      // }
 
-      if (!res.ok) throw new Error('Erreur sauvegarde');
+      if (uploadTasks.length > 0) {
+        await Promise.all(uploadTasks);
+
+        // Enregistrer les URLs obtenues dans la base
+        const res = await fetch(`/api/beats/${beatId}/files`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(uploadedUrls),
+        });
+
+        if (!res.ok) throw new Error('Erreur enregistrement des URLs de fichiers');
+      }
 
       setIsModalOpen(false);
       resetForm();
       fetchBeats();
     } catch (err) {
-      alert('Erreur lors de l’enregistrement du beat.');
+      console.error(err);
+      alert('Erreur lors de l\'enregistrement du beat : ' + (err instanceof Error ? err.message : ''));
     } finally {
       setUploading(false);
     }
@@ -310,7 +369,7 @@ export default function AdminBeatsPage() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-[#171513] border border-[#26221f] rounded-2xl w-full max-w-2xl p-6 space-y-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-white">{currentBeatId ? 'Modifier le Beat' : 'Ajouter un nouveau Beat'}</h3>
-            
+
             <form onSubmit={handleSaveBeat} className="space-y-4">
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Titre du Beat</label>
@@ -454,21 +513,18 @@ export default function AdminBeatsPage() {
                   )}
                 </div>
 
-                {/* Stems ZIP */}
-                <div className="bg-[#201d1a] p-3 rounded-xl border border-[#332e2a]">
-                  <label className="block text-xs text-gray-400 mb-1">Pistes séparées (Stems ZIP)</label>
+                {/* Stems ZIP - désactivé temporairement (upgrade stockage à venir) */}
+                <div className="bg-[#201d1a] p-3 rounded-xl border border-[#332e2a] opacity-50">
+                  <label className="block text-xs text-gray-400 mb-1">
+                    Pistes séparées (Stems ZIP) — <span className="text-[#ff6b35]">Bientôt disponible</span>
+                  </label>
                   <input
                     type="file"
                     accept=".zip,.rar"
-                    onChange={(e) => setFiles({ ...files, stemsZip: e.target.files?.[0] })}
-                    className="text-xs text-gray-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#ff6b35] file:text-white hover:file:bg-[#e05a2b]"
+                    disabled
+                    className="text-xs text-gray-500 cursor-not-allowed"
                   />
-                  {files.stemsZip && <p className="text-xs text-emerald-400 mt-1">Fichier sélectionné : {files.stemsZip.name}</p>}
-                  {uploading && uploadProgress.stemsZip > 0 && (
-                    <div className="mt-2 w-full bg-gray-800 rounded-full h-2 overflow-hidden">
-                      <div className="bg-[#ff6b35] h-2 transition-all duration-200" style={{ width: `${uploadProgress.stemsZip}%` }}></div>
-                    </div>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">Cette option sera réactivée après mise à niveau du stockage.</p>
                 </div>
               </div>
 
