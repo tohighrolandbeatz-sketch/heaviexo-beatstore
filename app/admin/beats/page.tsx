@@ -23,7 +23,6 @@ export default function AdminBeatsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // États du formulaire
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentBeatId, setCurrentBeatId] = useState<string>('');
   const [title, setTitle] = useState('');
@@ -32,11 +31,9 @@ export default function AdminBeatsPage() {
   const [bpm, setBpm] = useState<number>(140);
   const [musicalKey, setMusicalKey] = useState('');
 
-  // Gestion des moods / styles (liste dynamique)
   const [moodInput, setMoodInput] = useState('');
   const [moods, setMoods] = useState<string[]>([]);
 
-  // Fichiers et progression
   const [files, setFiles] = useState<{
     cover?: File;
     previewMp3?: File;
@@ -61,7 +58,25 @@ export default function AdminBeatsPage() {
     try {
       const res = await fetch('/api/beats');
       const data = await res.json();
-      setBeats(data);
+
+      // L'API renvoie les vrais noms de colonnes (cover_url, preview_url, genre, musical_key...)
+      // On les adapte ici aux noms attendus par l'interface
+      const mapped: Beat[] = (Array.isArray(data) ? data : []).map((b: any) => ({
+        id: b.id,
+        title: b.title,
+        category: b.genre || '',
+        price: b.price,
+        bpm: b.bpm,
+        musicalKey: b.musical_key || '',
+        moods: b.mood ? b.mood.split(',').map((m: string) => m.trim()).filter(Boolean) : [],
+        visible: b.status !== 'draft',
+        cover: b.cover_url || undefined,
+        previewMp3: b.preview_url || undefined,
+        masterWav: b.master_url || undefined,
+        stemsZip: b.stems_url || undefined,
+      }));
+
+      setBeats(mapped);
     } catch (err) {
       console.error('Erreur chargement beats', err);
     } finally {
@@ -101,10 +116,11 @@ export default function AdminBeatsPage() {
 
   async function toggleVisibility(id: string, currentStatus: boolean) {
     try {
+      // Le statut réel en base est "status" (published/draft), pas un booléen "visible"
       await fetch(`/api/beats/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visible: !currentStatus }),
+        body: JSON.stringify({ status: currentStatus ? 'draft' : 'published' }),
       });
       fetchBeats();
     } catch (err) {
@@ -128,7 +144,6 @@ export default function AdminBeatsPage() {
     setUploading(true);
 
     try {
-      // Génère un slug propre à partir du titre
       const slug = title
         .toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -137,7 +152,6 @@ export default function AdminBeatsPage() {
 
       let beatId = currentBeatId;
 
-      // Étape 1 : créer ou mettre à jour le beat (JSON léger, sans fichiers)
       if (!currentBeatId) {
         const res = await fetch('/api/beats', {
           method: 'POST',
@@ -180,7 +194,6 @@ export default function AdminBeatsPage() {
         }
       }
 
-      // Étape 2 : uploader les fichiers directement vers Vercel Blob (contourne le serveur)
       const uploadedUrls: Record<string, string> = {};
 
       const uploadOne = async (file: File, key: keyof typeof uploadProgress, fileName: string) => {
@@ -201,16 +214,10 @@ export default function AdminBeatsPage() {
       if (files.cover) uploadTasks.push(uploadOne(files.cover, 'cover', 'cover.webp'));
       if (files.previewMp3) uploadTasks.push(uploadOne(files.previewMp3, 'previewMp3', 'preview.mp3'));
       if (files.masterWav) uploadTasks.push(uploadOne(files.masterWav, 'masterWav', 'master.wav'));
-      // Stems désactivé temporairement — voir bloc UI plus bas
-      // if (files.stemsZip) {
-      //   const ext = files.stemsZip.name.split('.').pop() || 'zip';
-      //   uploadTasks.push(uploadOne(files.stemsZip, 'stemsZip', `stems.${ext}`));
-      // }
 
       if (uploadTasks.length > 0) {
         await Promise.all(uploadTasks);
 
-        // Enregistrer les URLs obtenues dans la base
         const res = await fetch(`/api/beats/${beatId}/files`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -364,7 +371,6 @@ export default function AdminBeatsPage() {
         </table>
       </div>
 
-      {/* Modal Ajout / Edition */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-[#171513] border border-[#26221f] rounded-2xl w-full max-w-2xl p-6 space-y-6 max-h-[90vh] overflow-y-auto">
@@ -424,7 +430,6 @@ export default function AdminBeatsPage() {
                 </div>
               </div>
 
-              {/* MOODS & STYLES EN LISTE / TAGS */}
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Moods & Styles (Tags)</label>
                 <div className="flex gap-2 mb-2">
@@ -456,13 +461,11 @@ export default function AdminBeatsPage() {
                 </div>
               </div>
 
-              {/* FICHIERS AVEC BARRE DE PROGRESSION & NOM */}
               <div className="space-y-3 pt-2 border-t border-[#26221f]">
                 <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                   <Upload className="w-4 h-4 text-[#ff6b35]" /> Fichiers Multimédias & Audio
                 </h4>
 
-                {/* Cover */}
                 <div className="bg-[#201d1a] p-3 rounded-xl border border-[#332e2a]">
                   <label className="block text-xs text-gray-400 mb-1">Image de couverture</label>
                   <input
@@ -479,7 +482,6 @@ export default function AdminBeatsPage() {
                   )}
                 </div>
 
-                {/* Preview MP3 */}
                 <div className="bg-[#201d1a] p-3 rounded-xl border border-[#332e2a]">
                   <label className="block text-xs text-gray-400 mb-1">Aperçu MP3</label>
                   <input
@@ -496,7 +498,6 @@ export default function AdminBeatsPage() {
                   )}
                 </div>
 
-                {/* Master WAV */}
                 <div className="bg-[#201d1a] p-3 rounded-xl border border-[#332e2a]">
                   <label className="block text-xs text-gray-400 mb-1">Fichier Master WAV</label>
                   <input
@@ -513,7 +514,6 @@ export default function AdminBeatsPage() {
                   )}
                 </div>
 
-                {/* Stems ZIP - désactivé temporairement (upgrade stockage à venir) */}
                 <div className="bg-[#201d1a] p-3 rounded-xl border border-[#332e2a] opacity-50">
                   <label className="block text-xs text-gray-400 mb-1">
                     Pistes séparées (Stems ZIP) — <span className="text-[#ff6b35]">Bientôt disponible</span>

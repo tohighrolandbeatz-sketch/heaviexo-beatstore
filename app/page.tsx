@@ -2,21 +2,33 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Play, 
-  Pause, 
-  Search, 
-  ShoppingCart, 
-  Volume2, 
+import {
+  Play,
+  Pause,
+  Search,
+  ShoppingCart,
+  Volume2,
   VolumeX,
-  SkipBack, 
+  SkipBack,
   SkipForward,
   Menu,
   X,
   SlidersHorizontal,
   ChevronLeft,
   Package,
-  Music2
+  Music2,
+  FileAudio,
+  Sliders,
+  Layers,
+  Crown,
+  Check,
+  User,
+  Mail,
+  Smartphone,
+  CreditCard,
+  ExternalLink,
+  ShieldCheck,
+  Trash2
 } from "lucide-react";
 import Link from "next/link";
 
@@ -297,7 +309,6 @@ export default function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("All");
-  
   const [lang, setLang] = useState<"FR" | "EN">("FR");
   const t = translations[lang];
 
@@ -310,12 +321,15 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<"store" | "kits">("store");
   const [detailedBeat, setDetailedBeat] = useState<Beat | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
   const [selectedBeatForPurchase, setSelectedBeatForPurchase] = useState<Beat | null>(null);
   const [selectedLicenseId, setSelectedLicenseId] = useState("wav");
-  
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+
+  // États du panier / checkout (restaurés)
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"momo" | "paypal">("momo");
 
   const [branding, setBranding] = useState<any>(null);
 
@@ -342,8 +356,17 @@ export default function Home() {
         const freshLicenses: License[] = await licensesRes.json().catch(() => []);
 
         const freshBeats: Beat[] = freshBeatsRaw.map((b) => ({
-          ...b,
-          previewMp3: b.previewMp3 || b.audioUrl || "",
+          id: b.id,
+          title: b.title,
+          type: b.genre || "",
+          bpm: b.bpm,
+          key: b.musical_key || "",
+          mood: b.mood || "",
+          price: b.price,
+          cover: b.cover_url || "",
+          previewMp3: b.preview_url || "",
+          description: b.description || "",
+          visible: b.status !== "draft",
           comments: b.comments || []
         }));
 
@@ -379,13 +402,79 @@ export default function Home() {
     }
   };
 
+  // --- Panier / Achat (restaurés depuis l'ancienne version) ---
+  const handleAddBeatToCart = () => {
+    if (!selectedBeatForPurchase) return;
+    const lic = licensesList.find(l => l.id === selectedLicenseId) || licensesList[0];
+    const itemPrice = Number(lic?.price || 0).toFixed(2);
+    const newItem: CartItem = {
+      cartId: Date.now().toString(),
+      itemType: "beat",
+      beat: selectedBeatForPurchase,
+      license: lic,
+      price: itemPrice
+    };
+    setCartItems([...cartItems, newItem]);
+    setSelectedBeatForPurchase(null);
+    setCartOpen(true);
+  };
+
+  const handleRemoveFromCart = (cartId: string) => {
+    setCartItems(cartItems.filter(item => item.cartId !== cartId));
+  };
+
+  const handleCheckout = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customerName || !customerEmail || cartItems.length === 0) return;
+    const itemsSummary = cartItems.map((item, idx) => {
+      let licenseName = item.license?.name;
+      if (item.license) {
+        if (lang === "EN") {
+          if (item.license.id === "mp3") licenseName = "MP3 Lease";
+          else if (item.license.id === "wav") licenseName = "WAV Premium";
+          else if (item.license.id === "stems") licenseName = "Trackout / Stems";
+          else if (item.license.id === "exclusive") licenseName = "Exclusive Rights";
+        }
+      }
+      if (item.itemType === "beat") {
+        return `${idx + 1}. Beat: ${item.beat?.title} (${licenseName}) - $${item.price}`;
+      }
+      return `${idx + 1}. Kit: ${item.kit?.title} - $${item.price}`;
+    }).join("%0A");
+
+    if (paymentMethod === "momo") {
+      const message = `*COMMANDE HEAVIEXO BEATS*%0A%0A*Artiste:* ${encodeURIComponent(customerName)}%0A*Email:* ${encodeURIComponent(customerEmail)}%0A%0A*Panier:*%0A${itemsSummary}%0A%0A*Total:* $${cartTotal}%0A*Mode de Paiement:* Mobile Money (MTN / Moov)%0A%0AMerci de m'envoyer les instructions de paiement !`;
+      window.open(`https://wa.me/${PHONE_WHATSAPP}?text=${message}`, "_blank");
+    } else {
+      let paypalLink = "https://www.paypal.com/ncp/payment/8ATGLJLD9WVBC";
+      const firstItem = cartItems[0];
+      if (firstItem && firstItem.itemType === "beat") {
+        const licenseId = firstItem.license?.id;
+        if (licenseId === "mp3") {
+          paypalLink = "https://www.paypal.com/ncp/payment/ZSS69K9VHU59C";
+        } else if (licenseId === "wav") {
+          paypalLink = "https://www.paypal.com/ncp/payment/8ATGLJLD9WVBC";
+        } else if (licenseId === "stems") {
+          paypalLink = "https://www.paypal.com/ncp/payment/WG64S2QL5RUNL";
+        } else if (licenseId === "exclusive") {
+          paypalLink = "https://www.paypal.com/ncp/payment/XU9GSXMKN2HKL";
+        }
+      }
+      window.open(paypalLink, "_blank");
+    }
+  };
+
   const filteredBeats = beatsList.filter(beat => {
     if (beat.visible === false) return false;
-    const matchesSearch = beat.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = beat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (beat.type && beat.type.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesGenre = selectedGenre === "All" || (beat.type && beat.type.toLowerCase().includes(selectedGenre.toLowerCase()));
     return matchesSearch && matchesGenre;
   });
+
+  const cartTotal = cartItems.reduce((acc, item) => acc + parseFloat(item.price), 0).toFixed(2);
+  const activeLicense = licensesList.find(l => l.id === selectedLicenseId) || licensesList[0];
+  const calculatedPrice = Number(activeLicense?.price || 0).toFixed(2);
 
   const footerText = branding?.footerText || t.footerDesc;
   const copyrightText = branding?.copyright || "© 2026 HEAVIEXO BEATS. Tous droits réservés.";
@@ -562,7 +651,7 @@ export default function Home() {
             <div className="flex flex-col md:flex-row justify-between items-center gap-3 bg-[#29201C]/60 backdrop-blur-2xl p-3 md:p-4 rounded-xl shadow-lg">
               <div className="relative w-full md:w-96">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9E938B]" />
-                <input 
+                <input
                   type="text"
                   placeholder={t.searchPlaceholder}
                   value={searchQuery}
@@ -660,6 +749,297 @@ export default function Home() {
           <p>{copyrightText}</p>
         </div>
       </footer>
+
+      {/* MODAL ACHAT LICENCE (restauré) */}
+      <AnimatePresence>
+        {selectedBeatForPurchase && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              onClick={() => setSelectedBeatForPurchase(null)}
+              className="fixed inset-0 bg-black/65 backdrop-blur-md"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.93, y: 25 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.93, y: 25 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-[#29201C]/90 w-full max-w-xl rounded-3xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.85)] backdrop-blur-2xl relative z-10 my-8"
+            >
+              <div className="p-5 md:p-6 border-b border-white/10 flex items-center justify-between bg-white/5 backdrop-blur-sm">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md flex-shrink-0">
+                    <img src={selectedBeatForPurchase.cover} alt={selectedBeatForPurchase.title} className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-[#F4F0EB] tracking-wide">{selectedBeatForPurchase.title}</h3>
+                    <p className="text-xs text-[#C66B3D] uppercase font-extrabold">{selectedBeatForPurchase.type} • {selectedBeatForPurchase.bpm} BPM</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedBeatForPurchase(null)}
+                  className="p-2 text-[#9E938B] hover:text-[#F4F0EB] rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-4 md:p-6 space-y-3 max-h-[60vh] overflow-y-auto">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#9E938B] block mb-2">
+                  {t.chooseExploitation}
+                </span>
+
+                {licensesList.map((lic) => {
+                  const isSelected = selectedLicenseId === lic.id;
+                  const price = Number(lic.price || 0).toFixed(2);
+                  const IconComponent = lic.id === "mp3" ? FileAudio : lic.id === "wav" ? Sliders : lic.id === "stems" ? Layers : Crown;
+
+                  let displayName = lic.name;
+                  let displayFeatures = lic.features;
+
+                  if (lang === "EN") {
+                    if (lic.id === "mp3") {
+                      displayName = "MP3 Lease";
+                      displayFeatures = ["MP3 File 320kbps", "Up to 100,000 streams", "2,500 sales max", "1 Music Video (YouTube)", "Commercial use allowed"];
+                    } else if (lic.id === "wav") {
+                      displayName = "WAV Premium";
+                      displayFeatures = ["High quality WAV + MP3 files", "Up to 500,000 streams", "5,000 sales max", "2 Music Videos & Radio", "Commercial use allowed"];
+                    } else if (lic.id === "stems") {
+                      displayName = "Trackout / Stems";
+                      displayFeatures = ["All separated tracks (WAV stems)", "Unlimited streams", "Unlimited sales", "Unlimited videos & radio", "Full remix freedom"];
+                    } else if (lic.id === "exclusive") {
+                      displayName = "Exclusive Rights";
+                      displayFeatures = ["Exclusive ownership (Removed from store)", "Unlimited rights and sales", "Full exploitation transfer", "HeavieXo keeps 100% publishing (BMI)"];
+                    }
+                  }
+
+                  return (
+                    <motion.div
+                      whileTap={{ scale: 0.99 }}
+                      key={lic.id}
+                      onClick={() => setSelectedLicenseId(lic.id)}
+                      className={`p-4 rounded-2xl transition-all duration-300 cursor-pointer backdrop-blur-2xl shadow-xl ${
+                        isSelected
+                          ? "bg-[#C66B3D]/25 text-[#F4F0EB] shadow-[0_15px_35px_rgba(193,107,61,0.2)]"
+                          : "bg-white/[0.03] text-[#C2B9B0] hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2.5">
+                          <IconComponent className={`w-5 h-5 ${isSelected ? "text-[#C66B3D]" : "text-[#9E938B]"}`} />
+                          <h4 className="font-bold text-[#F4F0EB] text-base">{displayName}</h4>
+                          {lic.popular && (
+                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-[#C66B3D] text-white shadow-md">
+                              {t.popular}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-base md:text-lg font-black text-[#C66B3D]">${price}</span>
+                      </div>
+
+                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-3 pt-3 border-t border-white/5 text-xs text-[#C2B9B0]">
+                        {Array.isArray(displayFeatures) && displayFeatures.map((feat: string, idx: number) => (
+                          <li key={idx} className="flex items-center space-x-2">
+                            <Check className="w-3.5 h-3.5 text-[#C66B3D] flex-shrink-0" />
+                            <span>{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              <div className="p-5 md:p-6 border-t border-white/10 bg-white/5 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <span className="text-[10px] text-[#9E938B] font-extrabold uppercase tracking-widest block">Total sélection :</span>
+                  <span className="text-2xl font-black text-[#F4F0EB]">${calculatedPrice}</span>
+                </div>
+
+                <button
+                  onClick={handleAddBeatToCart}
+                  className="w-full sm:w-auto bg-[#C66B3D] hover:bg-[#D97746] active:scale-95 text-white font-extrabold px-8 py-3.5 rounded-2xl text-sm transition-all flex items-center justify-center space-x-2 shadow-xl shadow-[#C66B3D]/30"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>{t.addToCart}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL PANIER (restauré) */}
+      <AnimatePresence>
+        {cartOpen && (
+          <div className="fixed inset-0 z-50 overflow-hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setCartOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
+            />
+
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="w-screen max-w-md bg-[#161311]/95 backdrop-blur-2xl text-[#F4F0EB] shadow-[-20px_0_50px_rgba(0,0,0,0.8)] flex flex-col justify-between"
+              >
+                <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/5 backdrop-blur-md">
+                  <div className="flex items-center space-x-3">
+                    <ShoppingCart className="w-5 h-5 text-[#C66B3D]" />
+                    <h3 className="font-extrabold text-lg uppercase tracking-wide">{t.cartTitle} ({cartItems.length})</h3>
+                  </div>
+                  <button
+                    onClick={() => setCartOpen(false)}
+                    className="p-2 text-[#9E938B] hover:text-[#F4F0EB] rounded-full hover:bg-white/10 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="p-6 flex-1 overflow-y-auto space-y-4">
+                  {cartItems.length === 0 ? (
+                    <div className="text-center py-16 text-[#9E938B] space-y-3">
+                      <ShoppingCart className="w-12 h-12 mx-auto opacity-30" />
+                      <p className="text-sm font-semibold">{t.emptyCart}</p>
+                      <span className="text-xs text-[#9E938B] block">{t.selectBeatOrKit}</span>
+                    </div>
+                  ) : (
+                    cartItems.map((item) => {
+                      const itemName = item.itemType === "beat" ? item.beat?.title : item.kit?.title;
+                      let itemLicenseName = item.itemType === "beat" && item.license ? item.license.name : item.kit?.category;
+                      if (lang === "EN" && item.license) {
+                        if (item.license.id === "mp3") itemLicenseName = "MP3 Lease";
+                        else if (item.license.id === "wav") itemLicenseName = "WAV Premium";
+                        else if (item.license.id === "stems") itemLicenseName = "Trackout / Stems";
+                        else if (item.license.id === "exclusive") itemLicenseName = "Exclusive Rights";
+                      }
+
+                      return (
+                        <div
+                          key={item.cartId}
+                          className="p-4 rounded-2xl bg-white/[0.04] backdrop-blur-2xl flex items-center justify-between space-x-3 shadow-xl"
+                        >
+                          <div className="w-12 h-12 rounded-xl overflow-hidden shadow flex-shrink-0">
+                            <img src={item.itemType === "beat" ? item.beat?.cover : item.kit?.cover} alt="Cover" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-bold text-sm text-[#F4F0EB] truncate">
+                              {itemName}
+                            </h5>
+                            <span className="text-xs text-[#C66B3D] font-extrabold uppercase block">
+                              {itemLicenseName}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-black text-sm text-[#F4F0EB] block">${item.price}</span>
+                            <button
+                              onClick={() => handleRemoveFromCart(item.cartId)}
+                              className="text-[#9E938B] hover:text-red-400 transition-colors p-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {cartItems.length > 0 && (
+                  <form onSubmit={handleCheckout} className="p-6 border-t border-white/10 bg-white/5 backdrop-blur-md space-y-4">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#C66B3D] block mb-1">{t.artistInfo}</span>
+
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9E938B]" />
+                        <input
+                          type="text"
+                          placeholder={t.artistName}
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          className="w-full bg-black/40 backdrop-blur-2xl rounded-xl pl-10 pr-4 py-3 text-xs text-[#F4F0EB] placeholder:text-[#9E938B] focus:outline-none focus:ring-1 focus:ring-[#C66B3D] shadow-inner"
+                          required
+                        />
+                      </div>
+
+                      <div className="relative">
+                        <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9E938B]" />
+                        <input
+                          type="email"
+                          placeholder={t.emailAddr}
+                          value={customerEmail}
+                          onChange={(e) => setCustomerEmail(e.target.value)}
+                          className="w-full bg-black/40 backdrop-blur-2xl rounded-xl pl-10 pr-4 py-3 text-xs text-[#F4F0EB] placeholder:text-[#9E938B] focus:outline-none focus:ring-1 focus:ring-[#C66B3D] shadow-inner"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#C2B9B0] block mb-2">{t.paymentMode}</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("momo")}
+                          className={`p-3.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all backdrop-blur-2xl shadow-xl ${
+                            paymentMethod === "momo"
+                              ? "bg-[#C66B3D]/30 text-[#F4F0EB] shadow-lg shadow-[#C66B3D]/20"
+                              : "bg-white/[0.03] text-[#C2B9B0] hover:bg-white/[0.06]"
+                          }`}
+                        >
+                          <Smartphone className="w-4 h-4 text-[#C66B3D]" />
+                          <span>Mobile Money</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("paypal")}
+                          className={`p-3.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all backdrop-blur-2xl shadow-xl ${
+                            paymentMethod === "paypal"
+                              ? "bg-[#C66B3D]/30 text-[#F4F0EB] shadow-lg shadow-[#C66B3D]/20"
+                              : "bg-white/[0.03] text-[#C2B9B0] hover:bg-white/[0.06]"
+                          }`}
+                        >
+                          <CreditCard className="w-4 h-4 text-[#C66B3D]" />
+                          <span>PayPal / CB</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-xs text-[#C2B9B0] font-bold uppercase">{t.totalToPay}</span>
+                      <span className="text-2xl font-black text-[#C66B3D]">${cartTotal}</span>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-[#C66B3D] hover:bg-[#D97746] active:scale-95 text-white font-extrabold py-4 rounded-2xl text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-xl shadow-[#C66B3D]/30"
+                    >
+                      <span>{paymentMethod === "momo" ? t.momoRedirect : t.paypalRedirect}</span>
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex items-center justify-center space-x-1.5 text-[10px] text-[#9E938B] pt-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#C66B3D]" />
+                      <span>{t.securedPayment}</span>
+                    </div>
+                  </form>
+                )}
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
