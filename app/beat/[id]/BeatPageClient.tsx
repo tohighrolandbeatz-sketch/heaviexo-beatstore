@@ -46,86 +46,149 @@ export default function BeatPageClient({ beat }: { beat: any }) {
 
   return (
     <div className="min-h-screen bg-[#070504] text-[#F4F0EB] flex flex-col relative overflow-x-hidden">
-      <div className="absolute inset-0 z-0 opacity-20 scale-125 bg-cover bg-center blur-[120px] pointer-events-none" style={{ backgroundImage: `url(${mappedBeat.cover})` }} />
+      {/* Arrière-plan cinématique flouté */}
+      <div 
+        className="absolute inset-0 z-0 opacity-20 scale-125 bg-cover bg-center blur-[120px] pointer-events-none" 
+        style={{ backgroundImage: `url(${mappedBeat.cover})` }}
+      />
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-[#070504]/80 to-[#070504] z-0 pointer-events-none" />
 
-      <header className="relative z-20 px-6 py-4 flex items-center justify-between border-b border-white/5">
-        <button onClick={() => router.push('/')} className="flex items-center gap-2 text-xs text-[#888] hover:text-white transition-colors">
-          <ArrowRight className="w-4 h-4 rotate-180" /> HeavieXo Beats
+      {/* Header minimal */}
+      <header className="relative z-20 px-6 md:px-12 py-5 flex items-center justify-between border-b border-white/5 backdrop-blur-md">
+        <button 
+          onClick={() => router.push('/')} 
+          className="flex items-center gap-2 text-xs font-medium text-[#888] hover:text-white transition-colors group"
+        >
+          <ArrowRight className="w-3.5 h-3.5 rotate-180 transition-transform group-hover:-translate-x-1" />
+          HeavieXo Beats
+        </button>
+        <button 
+          onClick={handleCopy} 
+          className="flex items-center gap-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 px-3.5 py-1.5 rounded-full text-[#ccc] hover:text-white transition-all"
+        >
+          {copied ? '✓ Copié' : <><Share2 className="w-3 h-3 text-[#C66B3D]" /> Partager</>}
         </button>
       </header>
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8 max-w-2xl mx-auto w-full space-y-8">
+      {/* Contenu principal */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8 md:py-12 max-w-2xl mx-auto w-full space-y-8">
         
-        <div className="relative">
-          <div className={`absolute w-48 h-48 md:w-56 md:h-56 rounded-full bg-[#111] border-4 border-[#1a1a1a] flex items-center justify-center transition-all duration-700 z-0 ${isThisPlaying ? 'translate-x-16 md:translate-x-20 opacity-100' : 'translate-x-0 opacity-30'}`}>
-            <div className="absolute inset-4 rounded-full border border-white/5" />
-            <div className="absolute inset-10 rounded-full border border-white/10" />
-            <div className="absolute w-12 h-12 rounded-full bg-black border-2 border-[#C66B3D] flex items-center justify-center">
-              <Disc className="w-4 h-4 text-[#C66B3D]" />
+        {/* Cover avec animation vinyle */}
+        <div className="relative flex items-center justify-center my-2">
+          <div className={`absolute w-52 h-52 md:w-64 md:h-64 rounded-full bg-[#111] shadow-2xl flex items-center justify-center transition-all duration-700 ease-out z-0 ${isThisPlaying ? 'translate-x-16 md:translate-x-24 rotate-180 scale-105' : 'translate-x-0 opacity-30'}`}>
+            <div className="absolute inset-3 rounded-full border border-white/5" />
+            <div className="absolute inset-8 rounded-full border border-white/5" />
+            <div className="absolute w-16 h-16 rounded-full bg-black border border-[#C66B3D]/50 flex items-center justify-center">
+              <Disc className="w-5 h-5 text-[#C66B3D] animate-spin" style={{ animationDuration: '8s' }} />
             </div>
           </div>
-          <div className="w-52 h-52 md:w-64 md:h-64 rounded-3xl overflow-hidden shadow-2xl relative z-10">
-            <img src={mappedBeat.cover} alt={mappedBeat.title} className="w-full h-full object-cover" />
+
+          <div className="w-56 h-56 md:w-68 md:h-68 rounded-2xl overflow-hidden shadow-2xl relative z-10 bg-[#15100e]">
+            <img src={mappedBeat.cover} alt={mappedBeat.title} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
           </div>
         </div>
 
-        <div className="text-center space-y-2 max-w-xl">
-          <span className="inline-block text-[10px] font-extrabold text-[#C66B3D] uppercase tracking-widest bg-[#C66B3D]/15 border border-[#C66B3D]/30 px-3 py-1 rounded-full">
+        {/* Infos du beat */}
+        <div className="text-center space-y-2 max-w-lg">
+          <span className="inline-block text-[10px] font-bold text-[#C66B3D] uppercase tracking-widest bg-[#C66B3D]/10 px-3 py-1 rounded-full">
             {mappedBeat.type}
           </span>
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-white">{mappedBeat.title}</h1>
-          <div className="flex items-center justify-center gap-2 text-xs text-[#999]">
-            <span>{mappedBeat.bpm} BPM</span><span>•</span><span>{mappedBeat.key}</span>
-            {mappedBeat.mood && <><span>•</span><span>{mappedBeat.mood}</span></>}
+          <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-white">
+            {mappedBeat.title}
+          </h1>
+          <div className="flex items-center justify-center gap-2.5 text-xs text-[#888] font-medium pt-0.5">
+            <span>{mappedBeat.bpm} BPM</span>
+            <span>•</span>
+            <span>{mappedBeat.key}</span>
+            {mappedBeat.mood && (
+              <>
+                <span>•</span>
+                <span>{mappedBeat.mood}</span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Player avec waveform et boutons de chaque côté */}
-        <div className="w-full max-w-md bg-[#140F0D]/80 backdrop-blur-2xl rounded-2xl p-4 space-y-3 border border-white/10">
-          {/* Progress */}
-          <div className="h-1.5 bg-white/10 rounded-full cursor-pointer overflow-hidden" onClick={(e: any) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            seek((e.clientX - rect.left) / rect.width * duration);
-          }}>
-            <div className="h-full bg-gradient-to-r from-[#C66B3D] to-[#FF8C5A] rounded-full transition-all duration-150" style={{ width: `${progress}%` }} />
-          </div>
-
-          {/* Controls + Waveform */}
-          <div className="flex items-center gap-3">
-            {/* Bouton licence à gauche */}
-            <button onClick={() => setShowLicense(true)} className="text-[#888] hover:text-[#C66B3D] p-2 transition-colors flex-shrink-0" title="Licence">
-              <ShoppingCart className="w-4 h-4" />
+        {/* Lecteur réduit et épuré (sans contours lourds) */}
+        <div className="w-full max-w-sm bg-white/[0.02] backdrop-blur-md rounded-2xl p-4 space-y-3">
+          <div className="flex items-center gap-4">
+            {/* Bouton Play compact */}
+            <button 
+              onClick={() => togglePlay(mappedBeat)}
+              className="w-12 h-12 rounded-xl bg-[#C66B3D] hover:bg-[#d87847] text-white flex items-center justify-center shadow-md shadow-[#C66B3D]/20 transition-all flex-shrink-0 active:scale-95"
+              aria-label={isThisPlaying ? "Pause" : "Play"}
+            >
+              {isThisPlaying ? (
+                <Pause className="w-5 h-5 fill-white" />
+              ) : (
+                <Play className="w-5 h-5 fill-white ml-0.5" />
+              )}
             </button>
 
-            {/* Play/Pause */}
-            <button onClick={() => togglePlay(mappedBeat)} className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#C66B3D] to-[#E8815A] flex items-center justify-center shadow-lg flex-shrink-0">
-              {isThisPlaying ? <Pause className="w-5 h-5 text-white" /> : <Play className="w-5 h-5 text-white ml-0.5" />}
-            </button>
+            {/* Barre de progression & Waveform intégrées */}
+            <div className="flex-1 space-y-1.5">
+              <div className="flex items-end justify-between gap-[2px] h-6 px-0.5">
+                {[...Array(20)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className={`w-1 rounded-full transition-all duration-300 ${isThisPlaying ? 'bg-[#C66B3D]' : 'bg-white/15'}`}
+                    style={{ 
+                      height: `${isThisPlaying ? Math.max(12, Math.sin(i + currentTime * 5) * 24 + 10) : 6}px`,
+                      opacity: isThisPlaying ? 1 : 0.3 
+                    }} 
+                  />
+                ))}
+              </div>
 
-            {/* Waveform */}
-            <div className="flex items-end justify-center gap-[2px] h-8 flex-1">
-              {[...Array(30)].map((_, i) => (
-                <div key={i} className="w-1 rounded-full transition-all duration-200"
-                  style={{ height: `${isThisPlaying ? 3 + Math.sin(i + currentTime * 8) * 15 + 10 : 4}px`, backgroundColor: isThisPlaying ? '#C66B3D' : '#444' }} />
-              ))}
+              <div 
+                className="h-1.5 bg-white/10 rounded-full cursor-pointer overflow-hidden relative" 
+                onClick={(e: any) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  seek((e.clientX - rect.left) / rect.width * duration);
+                }}
+              >
+                <div 
+                  className="h-full bg-[#C66B3D] rounded-full transition-all duration-150" 
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
-
-            {/* Timer */}
-            <span className="text-[10px] text-white/40 flex-shrink-0">{formatTime(currentTime)} / {formatTime(duration)}</span>
-
-            {/* Bouton partage à droite */}
-            <button onClick={handleCopy} className="text-[#888] hover:text-[#C66B3D] p-2 transition-colors flex-shrink-0" title="Partager">
-              {copied ? <span className="text-[10px] text-emerald-400">✓</span> : <Share2 className="w-4 h-4" />}
-            </button>
           </div>
+
+          <div className="flex justify-between text-[10px] font-mono text-white/40 px-1">
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
+        </div>
+
+        {/* Boutons d'action optimisés (plus fins et discrets) */}
+        <div className="flex items-center gap-2.5 w-full max-w-sm">
+          <button 
+            onClick={() => setShowLicense(true)}
+            className="flex-1 bg-[#C66B3D] hover:bg-[#d87847] text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md shadow-[#C66B3D]/20 active:scale-[0.98]"
+          >
+            <ShoppingCart className="w-3.5 h-3.5" />
+            Licence • ${mappedBeat.price}
+          </button>
+          <button 
+            onClick={handleCopy}
+            className="bg-white/5 hover:bg-white/10 text-white font-semibold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
+          >
+            <Share2 className="w-3.5 h-3.5 text-[#C66B3D]" />
+            {copied ? 'Copié' : 'Partager'}
+          </button>
         </div>
       </main>
 
-      <footer className="relative z-20 px-6 py-4 border-t border-white/5 text-center">
-        <p className="text-[10px] text-[#666]">Écoutez sur <span className="text-[#C66B3D] font-bold">HeavieXo Beats</span></p>
+      {/* Footer minimaliste */}
+      <footer className="relative z-20 px-6 py-4 text-center">
+        <p className="text-[11px] text-[#666]">
+          HeavieXo Beats • Tous droits réservés
+        </p>
       </footer>
 
+      {/* Modal des licences */}
       {showLicense && (
         <LicenseModal
           beat={mappedBeat}
