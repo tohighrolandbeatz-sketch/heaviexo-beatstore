@@ -1,11 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CartItem, Beat, SoundKit, License } from "@/types";
 import { PHONE_WHATSAPP } from "@/constants/config";
 
+const CART_STORAGE_KEY = "heaviexo-cart";
+
+function loadCart(): CartItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(CART_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCart(items: CartItem[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+}
+
 export function useCart(licensesList: License[]) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>(loadCart);
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedLicenseId, setSelectedLicenseId] = useState("wav");
+
+  useEffect(() => {
+    saveCart(cartItems);
+  }, [cartItems]);
 
   const handleAddBeatToCart = (beat: Beat) => {
     const lic = licensesList.find(l => l.id === selectedLicenseId) || licensesList[0];
@@ -17,7 +38,7 @@ export function useCart(licensesList: License[]) {
       license: lic,
       price: itemPrice
     };
-    setCartItems([...cartItems, newItem]);
+    setCartItems(prev => [...prev, newItem]);
     setCartOpen(true);
   };
 
@@ -28,12 +49,12 @@ export function useCart(licensesList: License[]) {
       kit,
       price: kit.price.toFixed(2)
     };
-    setCartItems([...cartItems, newItem]);
+    setCartItems(prev => [...prev, newItem]);
     setCartOpen(true);
   };
 
   const handleRemoveFromCart = (cartId: string) => {
-    setCartItems(cartItems.filter(item => item.cartId !== cartId));
+    setCartItems(prev => prev.filter(item => item.cartId !== cartId));
   };
 
   const cartTotal = cartItems.reduce((acc, item) => acc + parseFloat(item.price), 0).toFixed(2);
@@ -52,6 +73,7 @@ export function useCart(licensesList: License[]) {
     if (paymentMethod === "momo") {
       const message = `*COMMANDE HEAVIEXO BEATS*%0A%0A*Artiste:* ${encodeURIComponent(customerName)}%0A*Email:* ${encodeURIComponent(customerEmail)}%0A%0A*Panier:*%0A${itemsSummary}%0A%0A*Total:* $${cartTotal}%0A*Mode de Paiement:* Mobile Money (MTN / Moov)%0A%0AMerci de m'envoyer les instructions de paiement !`;
       window.open(`https://wa.me/${PHONE_WHATSAPP}?text=${message}`, "_blank");
+      setCartItems([]);
     } else {
       let paypalLink = "https://www.paypal.com/ncp/payment/8ATGLJLD9WVBC";
       const firstItem = cartItems[0];
@@ -63,6 +85,7 @@ export function useCart(licensesList: License[]) {
         else if (licenseId === "exclusive") paypalLink = "https://www.paypal.com/ncp/payment/XU9GSXMKN2HKL";
       }
       window.open(paypalLink, "_blank");
+      setCartItems([]);
     }
   };
 
