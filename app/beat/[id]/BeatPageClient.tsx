@@ -49,24 +49,16 @@ export default function BeatPageClient({ beat }: { beat: any }) {
       <div className="absolute inset-0 z-0 opacity-20 scale-125 bg-cover bg-center blur-[120px] pointer-events-none" style={{ backgroundImage: `url(${mappedBeat.cover})` }} />
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-[#070504]/80 to-[#070504] z-0 pointer-events-none" />
 
-      <header className="relative z-20 px-6 md:px-12 py-6 flex items-center justify-between border-b border-white/5 backdrop-blur-md">
-        <button onClick={() => router.push('/')} className="flex items-center gap-2 text-xs font-semibold text-[#888] hover:text-white transition-colors">
+      <header className="relative z-20 px-6 py-4 flex items-center justify-between border-b border-white/5">
+        <button onClick={() => router.push('/')} className="flex items-center gap-2 text-xs text-[#888] hover:text-white transition-colors">
           <ArrowRight className="w-4 h-4 rotate-180" /> HeavieXo Beats
         </button>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setShowLicense(true)} className="text-[#888] hover:text-[#C66B3D] p-2 transition-colors" title="Licence">
-            <ShoppingCart className="w-4 h-4" />
-          </button>
-          <button onClick={handleCopy} className="text-[#888] hover:text-[#C66B3D] p-2 transition-colors" title="Partager">
-            {copied ? <span className="text-[10px] text-emerald-400">✓</span> : <Share2 className="w-4 h-4" />}
-          </button>
-        </div>
       </header>
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-10 max-w-2xl mx-auto w-full space-y-8">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8 max-w-2xl mx-auto w-full space-y-8">
         
         <div className="relative">
-          <div className={`absolute w-48 h-48 md:w-56 md:h-56 rounded-full bg-[#111] border-4 border-[#1a1a1a] flex items-center justify-center transition-all duration-700 z-0 ${isThisPlaying ? 'translate-x-16 md:translate-x-20 rotate-180 opacity-100' : 'translate-x-0 opacity-30'}`}>
+          <div className={`absolute w-48 h-48 md:w-56 md:h-56 rounded-full bg-[#111] border-4 border-[#1a1a1a] flex items-center justify-center transition-all duration-700 z-0 ${isThisPlaying ? 'translate-x-16 md:translate-x-20 opacity-100' : 'translate-x-0 opacity-30'}`}>
             <div className="absolute inset-4 rounded-full border border-white/5" />
             <div className="absolute inset-10 rounded-full border border-white/10" />
             <div className="absolute w-12 h-12 rounded-full bg-black border-2 border-[#C66B3D] flex items-center justify-center">
@@ -89,20 +81,43 @@ export default function BeatPageClient({ beat }: { beat: any }) {
           </div>
         </div>
 
-        {/* Player compact */}
-        <div className="w-full max-w-sm bg-[#140F0D]/80 backdrop-blur-2xl rounded-2xl p-4 space-y-3 border border-white/10">
+        {/* Player avec waveform et boutons de chaque côté */}
+        <div className="w-full max-w-md bg-[#140F0D]/80 backdrop-blur-2xl rounded-2xl p-4 space-y-3 border border-white/10">
+          {/* Progress */}
           <div className="h-1.5 bg-white/10 rounded-full cursor-pointer overflow-hidden" onClick={(e: any) => {
             const rect = e.currentTarget.getBoundingClientRect();
             seek((e.clientX - rect.left) / rect.width * duration);
           }}>
             <div className="h-full bg-gradient-to-r from-[#C66B3D] to-[#FF8C5A] rounded-full transition-all duration-150" style={{ width: `${progress}%` }} />
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-white/40">{formatTime(currentTime)}</span>
-            <button onClick={() => togglePlay(mappedBeat)} className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#C66B3D] to-[#E8815A] flex items-center justify-center shadow-lg">
+
+          {/* Controls + Waveform */}
+          <div className="flex items-center gap-3">
+            {/* Bouton licence à gauche */}
+            <button onClick={() => setShowLicense(true)} className="text-[#888] hover:text-[#C66B3D] p-2 transition-colors flex-shrink-0" title="Licence">
+              <ShoppingCart className="w-4 h-4" />
+            </button>
+
+            {/* Play/Pause */}
+            <button onClick={() => togglePlay(mappedBeat)} className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#C66B3D] to-[#E8815A] flex items-center justify-center shadow-lg flex-shrink-0">
               {isThisPlaying ? <Pause className="w-5 h-5 text-white" /> : <Play className="w-5 h-5 text-white ml-0.5" />}
             </button>
-            <span className="text-[10px] text-white/40">{formatTime(duration)}</span>
+
+            {/* Waveform */}
+            <div className="flex items-end justify-center gap-[2px] h-8 flex-1">
+              {[...Array(30)].map((_, i) => (
+                <div key={i} className="w-1 rounded-full transition-all duration-200"
+                  style={{ height: `${isThisPlaying ? 3 + Math.sin(i + currentTime * 8) * 15 + 10 : 4}px`, backgroundColor: isThisPlaying ? '#C66B3D' : '#444' }} />
+              ))}
+            </div>
+
+            {/* Timer */}
+            <span className="text-[10px] text-white/40 flex-shrink-0">{formatTime(currentTime)} / {formatTime(duration)}</span>
+
+            {/* Bouton partage à droite */}
+            <button onClick={handleCopy} className="text-[#888] hover:text-[#C66B3D] p-2 transition-colors flex-shrink-0" title="Partager">
+              {copied ? <span className="text-[10px] text-emerald-400">✓</span> : <Share2 className="w-4 h-4" />}
+            </button>
           </div>
         </div>
       </main>
