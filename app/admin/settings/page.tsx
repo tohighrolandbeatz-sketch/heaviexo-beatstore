@@ -48,6 +48,9 @@ export default function AdminSettingsPage() {
   };
 
   const handleSave = async () => {
+    console.log('SAUVEGARDE branding:', branding);
+    console.log('SAUVEGARDE theme:', { preset: activePreset, custom: activePreset === 'CUSTOM' ? theme : null });
+    
     await fetch('/api/design', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,11 +60,12 @@ export default function AdminSettingsPage() {
       }),
     });
     setSaved(true);
-  const res = await fetch('/api/design');
-  const d = await res.json();
-  const b = d?.branding || {};
-  setBranding(b);
     setTimeout(() => setSaved(false), 2000);
+    
+    // Rafraîchir après save
+    const res = await fetch('/api/design');
+    const d = await res.json();
+    setBranding(d?.branding || {});
   };
 
   const updateBranding = (key: string, value: any) => {
