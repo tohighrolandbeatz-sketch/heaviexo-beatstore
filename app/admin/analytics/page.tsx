@@ -1,93 +1,129 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { BarChart2, Users, Play, ShoppingCart, DollarSign, Globe, Music, TrendingUp, Activity } from 'lucide-react';
 
 export default function AdminAnalyticsPage() {
-  const [timeRange, setTimeRange] = useState('7j');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const ranges = [
-    { id: '24h', label: '24h' },
-    { id: '7j', label: '7 jours' },
-    { id: '30j', label: '30 jours' },
-    { id: '12m', label: '12 mois' },
-    { id: 'all', label: 'Tout' },
-  ];
-
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/analytics?range=${timeRange}`)
-      .then(res => res.json())
-      .then(json => {
-        if (json.success) setData(json.data);
-        setLoading(false);
-      })
+    fetch('/api/admin/analytics')
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [timeRange]);
+  }, []);
 
-  if (loading || !data) {
-    return <div style={{ color: '#888', padding: '40px' }}>Chargement des analytics...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-8 h-8 border-2 border-[#ff6b35] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
+  if (!data) {
+    return <p className="text-gray-400 text-center py-20">Aucune donnée disponible.</p>;
+  }
+
+  const { kpis, topBeats, topCountries, topReferrers, recentEvents } = data;
+
+  const kpiCards = [
+    { label: 'Visites totales', value: kpis.totalVisits, icon: Users, color: 'text-blue-400' },
+    { label: 'Visiteurs uniques', value: kpis.uniqueIps, icon: Activity, color: 'text-cyan-400' },
+    { label: 'Écoutes', value: kpis.beatPlays, icon: Play, color: 'text-emerald-400' },
+    { label: 'Ajouts panier', value: kpis.addToCart, icon: ShoppingCart, color: 'text-yellow-400' },
+    { label: 'Achats', value: kpis.purchases, icon: DollarSign, color: 'text-green-400' },
+  ];
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-      <div style={{ background: '#171513', border: '1px solid #26221f', borderRadius: '16px', padding: '20px 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-        <h2 style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', color: '#ff6b35', textTransform: 'uppercase' }}>
-          📊 Analytics & Tracking en Temps Réel
-        </h2>
-        <div style={{ display: 'flex', gap: '8px', background: '#0f0e0d', padding: '5px', borderRadius: '10px', border: '1px solid #26221f' }}>
-          {ranges.map((r) => (
-            <button key={r.id} onClick={() => setTimeRange(r.id)} style={{
-              background: timeRange === r.id ? '#ff6b35' : 'transparent',
-              color: timeRange === r.id ? '#fff' : '#888',
-              border: 'none', borderRadius: '8px', padding: '8px 14px',
-              fontWeight: 'bold', fontSize: '11px', cursor: 'pointer',
-            }}>
-              {r.label}
-            </button>
-          ))}
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-white uppercase tracking-wider">Analytics</h2>
+        <p className="text-xs text-gray-400">Statistiques en temps réel de votre Beatstore.</p>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {kpiCards.map((kpi, i) => {
+          const Icon = kpi.icon;
+          return (
+            <div key={i} className="bg-[#171513] border border-[#26221f] rounded-2xl p-5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-gray-400 uppercase tracking-wider">{kpi.label}</span>
+                <Icon className={`w-4 h-4 ${kpi.color}`} />
+              </div>
+              <p className="text-2xl font-bold text-white">{kpi.value}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Beats */}
+        <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
+            <Music className="w-4 h-4 text-[#ff6b35]" /> Top Beats
+          </h3>
+          <div className="space-y-3">
+            {topBeats?.map((b: any, i: number) => (
+              <div key={i} className="flex items-center justify-between">
+                <span className="text-xs text-gray-300 truncate">{b.title || 'Inconnu'}</span>
+                <span className="text-xs text-[#ff6b35] font-bold">{b.count} écoutes</span>
+              </div>
+            ))}
+            {(!topBeats || topBeats.length === 0) && <p className="text-xs text-gray-500">Aucune écoute</p>}
+          </div>
+        </div>
+
+        {/* Top Pays */}
+        <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
+            <Globe className="w-4 h-4 text-[#ff6b35]" /> Top Pays
+          </h3>
+          <div className="space-y-3">
+            {topCountries?.map((c: any, i: number) => (
+              <div key={i} className="flex items-center justify-between">
+                <span className="text-xs text-gray-300">{c.country || 'Inconnu'}</span>
+                <span className="text-xs text-[#ff6b35] font-bold">{c.count}</span>
+              </div>
+            ))}
+            {(!topCountries || topCountries.length === 0) && <p className="text-xs text-gray-500">Aucune donnée</p>}
+          </div>
+        </div>
+
+        {/* Top Sources */}
+        <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
+            <TrendingUp className="w-4 h-4 text-[#ff6b35]" /> Sources de trafic
+          </h3>
+          <div className="space-y-3">
+            {topReferrers?.map((r: any, i: number) => (
+              <div key={i} className="flex items-center justify-between">
+                <span className="text-xs text-gray-300 truncate">{r.referrer || 'Direct'}</span>
+                <span className="text-xs text-[#ff6b35] font-bold">{r.count}</span>
+              </div>
+            ))}
+            {(!topReferrers || topReferrers.length === 0) && <p className="text-xs text-gray-500">Aucune donnée</p>}
+          </div>
+        </div>
+
+        {/* Événements récents */}
+        <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-[#ff6b35]" /> Activité récente
+          </h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {recentEvents?.map((e: any, i: number) => (
+              <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-[#26221f]">
+                <span className="text-gray-400">{e.eventType} {e.beatId ? `• ${e.beatId.slice(-8)}` : ''}</span>
+                <span className="text-gray-500">{new Date(e.createdAt).toLocaleString('fr')}</span>
+              </div>
+            ))}
+            {(!recentEvents || recentEvents.length === 0) && <p className="text-xs text-gray-500">Aucune activité</p>}
+          </div>
         </div>
       </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-        <Metric label="Chiffre d'Affaires (CA)" value={`${data.ca} $`} color="#ff6b35" />
-        <Metric label="Ventes (purchase)" value={data.ventes} />
-        <Metric label="Visiteurs (page_view)" value={data.visiteurs} />
-        <Metric label="Visiteurs Uniques" value={data.visiteursUniques} />
-        <Metric label="Écoutes (beat_play)" value={data.ecoutes} />
-        <Metric label="Écoutes Complètes (finish)" value={data.ecoutesCompletes} />
-        <Metric label="Likes / Favoris" value={data.likes} />
-        <Metric label="Ajouts Panier (add_to_cart)" value={data.ajoutsPanier} />
-        <Metric label="Taux de Conversion" value={`${data.tauxConversion} %`} color="#22c55e" />
-      </div>
-
-      <div style={{ background: '#171513', border: '1px solid #26221f', borderRadius: '16px', padding: '25px' }}>
-        <h3 style={{ fontSize: '11px', color: '#ff6b35', fontWeight: 'bold', marginBottom: '15px', textTransform: 'uppercase' }}>
-          🌍 Top Pays & Régions
-        </h3>
-        {data.topCountries.length === 0 && <p style={{ color: '#888', fontSize: '13px' }}>Aucune donnée pour cette période.</p>}
-        {data.topCountries.map((c: any) => (
-          <div key={c.country} style={{ marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
-              <span style={{ color: '#fff' }}>{c.country}</span>
-              <span style={{ color: '#ff6b35', fontWeight: 'bold' }}>{c.pct}%</span>
-            </div>
-            <div style={{ width: '100%', height: '6px', background: '#0f0e0d', borderRadius: '3px' }}>
-              <div style={{ width: `${c.pct}%`, height: '100%', background: '#ff6b35', borderRadius: '3px' }}></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Metric({ label, value, color = '#fff' }: { label: string; value: any; color?: string }) {
-  return (
-    <div style={{ background: '#171513', border: '1px solid #26221f', borderRadius: '14px', padding: '20px' }}>
-      <p style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase', marginBottom: '8px' }}>{label}</p>
-      <h3 style={{ fontSize: '22px', fontWeight: 'bold', color }}>{value}</h3>
     </div>
   );
 }
