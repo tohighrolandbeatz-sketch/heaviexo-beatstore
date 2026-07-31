@@ -9,6 +9,7 @@ export default function AdminLoginPage() {
   const [step, setStep] = useState<'email' | 'otp' | 'success'>('email');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
+  const [debugCode, setDebugCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -16,6 +17,7 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setDebugCode('');
 
     const res = await fetch('/api/admin/otp/send', {
       method: 'POST',
@@ -26,6 +28,7 @@ export default function AdminLoginPage() {
     const data = await res.json();
 
     if (res.ok) {
+      if (data.code) setDebugCode(data.code);
       setStep('otp');
     } else {
       setError(data.error || 'Erreur lors de l\'envoi');
@@ -103,6 +106,12 @@ export default function AdminLoginPage() {
         {step === 'otp' && (
           <form onSubmit={handleVerifyOTP} className="space-y-4">
             <p className="text-xs text-[#888] text-center">Code envoyé à <span className="text-white">{email}</span></p>
+            {debugCode && (
+              <div className="bg-emerald-400/10 border border-emerald-400/30 rounded-xl p-3 text-center">
+                <p className="text-[10px] text-emerald-400 uppercase tracking-wider mb-1">Code de test</p>
+                <p className="text-2xl font-black text-emerald-400 tracking-[0.3em]">{debugCode}</p>
+              </div>
+            )}
             <div>
               <input
                 type="text"
@@ -125,7 +134,7 @@ export default function AdminLoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setStep('email'); setError(''); setOtp(''); }}
+              onClick={() => { setStep('email'); setError(''); setOtp(''); setDebugCode(''); }}
               className="w-full text-xs text-[#888] hover:text-white transition-colors"
             >
               ← Changer d'email
