@@ -12,8 +12,9 @@ import { ArtistMarquee } from "@/components/home/ArtistMarquee";
 import { BeatDetail } from "@/components/beats/BeatDetail";
 import { CartModal } from "@/components/cart/CartModal";
 import { LicenseModal } from "@/components/license/LicenseModal";
+import { SharePopup } from "@/components/ui/SharePopup";
 import { Beat, License } from "@/types";
-import { ShoppingCart, Play, Pause, Search } from "lucide-react";
+import { ShoppingCart, Play, Pause, Search, Share2 } from "lucide-react";
 
 const waveAnimation = `
   @keyframes pulseWave {
@@ -90,10 +91,10 @@ export default function BeatstorePage() {
   const [detailedBeat, setDetailedBeat] = useState<Beat | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedBeatForPurchase, setSelectedBeatForPurchase] = useState<Beat | null>(null);
+  const [shareBeat, setShareBeat] = useState<Beat | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("All");
 
-  // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -134,7 +135,6 @@ export default function BeatstorePage() {
   const footerText = branding?.footerText || t.footerDesc;
   const heroBeat = beatsList.find((b: Beat) => b.featured) || beatsList[0];
 
-  // LOADER SKELETON
   if (beatsList.length === 0) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
@@ -211,9 +211,12 @@ export default function BeatstorePage() {
                       <h4 className="font-bold text-sm truncate text-white group-hover:text-[#C66B3D]">{beat.title}</h4>
                       <p className="text-[10px] text-[#888] truncate">{beat.type || 'Trap'} • {beat.bpm} BPM</p>
                     </div>
-                    <div className="flex items-end gap-[2px] h-8 flex-1 justify-center cursor-pointer" onClick={(e) => { e.stopPropagation(); togglePlay(beat); }}>
+                    <div className="hidden md:flex items-end gap-[2px] h-8 flex-1 justify-center cursor-pointer" onClick={(e) => { e.stopPropagation(); togglePlay(beat); }}>
                       <MiniWaveform isPlaying={isThisPlaying} />
                     </div>
+                    <button onClick={(e) => { e.stopPropagation(); setShareBeat(beat); }} className="text-[#888] hover:text-white p-2 transition-colors" title="Partager">
+                      <Share2 className="w-4 h-4" />
+                    </button>
                     <button onClick={(e) => handleBeatLicense(beat, e)} className="bg-[#C66B3D] hover:bg-[#d87847] text-white p-2 rounded-xl shadow-sm transition-all flex-shrink-0" title="Acheter">
                       <ShoppingCart className="w-4 h-4" />
                     </button>
@@ -228,17 +231,8 @@ export default function BeatstorePage() {
       <Footer t={t} setViewMode={() => {}} footerText={footerText} copyrightText="© 2026 HEAVIEXO BEATS" />
       <LicenseModal beat={selectedBeatForPurchase} licenses={filteredLicenses} selectedLicenseId={selectedLicenseId} onSelectLicense={setSelectedLicenseId} onAddToCart={handleAddToCart} onClose={() => setSelectedBeatForPurchase(null)} t={t} lang={lang} />
       <CartModal isOpen={cartOpen} onClose={() => setCartOpen(false)} cartItems={cartItems} cartTotal={cartTotal} onRemoveItem={handleRemoveFromCart} onCheckout={handleCheckout} t={t} lang={lang} />
-
-      <NowPlayingBar
-        beat={currentBeat}
-        isPlaying={isPlaying}
-        currentTime={currentTime}
-        duration={duration}
-        formatTime={formatTime}
-        onToggle={() => currentBeat && togglePlay(currentBeat)}
-        onClose={() => currentBeat && togglePlay(currentBeat)}
-        onSeek={seek}
-      />
+      <SharePopup beat={shareBeat!} isOpen={!!shareBeat} onClose={() => setShareBeat(null)} />
+      <NowPlayingBar beat={currentBeat} isPlaying={isPlaying} currentTime={currentTime} duration={duration} formatTime={formatTime} onToggle={() => currentBeat && togglePlay(currentBeat)} onClose={() => currentBeat && togglePlay(currentBeat)} onSeek={seek} />
     </div>
   );
 }
