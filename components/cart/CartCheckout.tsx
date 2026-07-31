@@ -4,6 +4,9 @@ import React, { useState } from "react";
 import { User, Mail, Smartphone, CreditCard, ExternalLink, ShieldCheck, Ticket } from "lucide-react";
 import { PHONE_WHATSAPP, PHONE_OWNER_NAME } from "@/constants/config";
 
+const CFA_RATE = 600;
+const toCFA = (usd: number) => Math.round(usd * CFA_RATE);
+
 interface CartCheckoutProps {
   cartTotal: string;
   onCheckout: (customerName: string, customerEmail: string, paymentMethod: "momo" | "paypal") => void;
@@ -29,37 +32,24 @@ export function CartCheckout({ cartTotal, onCheckout, t }: CartCheckoutProps) {
     if (!promoCode.trim()) return;
     setPromoLoading(true);
     setPromoMessage(null);
-
     try {
-      const res = await fetch('/api/promo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode }),
-      });
+      const res = await fetch('/api/promo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: promoCode }) });
       const data = await res.json();
-
       if (data.valid) {
-        if (data.type === 'percent') {
-          setDiscountPercent(data.discount);
-          setDiscountFixed(0);
-        } else {
-          setDiscountFixed(data.discount);
-          setDiscountPercent(0);
-        }
+        if (data.type === 'percent') { setDiscountPercent(data.discount); setDiscountFixed(0); }
+        else { setDiscountFixed(data.discount); setDiscountPercent(0); }
         setPromoMessage({ text: data.message, type: 'success' });
       } else {
-        setDiscountPercent(0);
-        setDiscountFixed(0);
+        setDiscountPercent(0); setDiscountFixed(0);
         setPromoMessage({ text: data.error, type: 'error' });
       }
-    } catch {
-      setPromoMessage({ text: 'Erreur lors de la vérification', type: 'error' });
-    } finally {
-      setPromoLoading(false);
-    }
+    } catch { setPromoMessage({ text: 'Erreur', type: 'error' }); }
+    finally { setPromoLoading(false); }
   };
 
   const discountedTotal = Math.max(0, parseFloat(cartTotal) - discountFixed - (parseFloat(cartTotal) * discountPercent / 100)).toFixed(2);
+  const totalUSD = parseFloat(discountedTotal);
+  const totalCFA = toCFA(totalUSD);
 
   return (
     <form onSubmit={handleSubmit} className="p-6 border-t border-white/10 bg-white/5 backdrop-blur-md space-y-4">
@@ -94,9 +84,7 @@ export function CartCheckout({ cartTotal, onCheckout, t }: CartCheckoutProps) {
           </button>
         </div>
         {promoMessage && (
-          <p className={`text-[10px] ${promoMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
-            {promoMessage.text}
-          </p>
+          <p className={`text-[10px] ${promoMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>{promoMessage.text}</p>
         )}
       </div>
 
@@ -104,13 +92,11 @@ export function CartCheckout({ cartTotal, onCheckout, t }: CartCheckoutProps) {
         <span className="text-[10px] font-black uppercase tracking-widest text-[#C2B9B0] block mb-2">{t.paymentMode}</span>
         <div className="grid grid-cols-2 gap-2">
           <button type="button" onClick={() => setPaymentMethod("momo")}
-            className={`p-3.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all backdrop-blur-2xl shadow-xl ${
-              paymentMethod === "momo" ? "bg-[#C66B3D]/30 text-[#F4F0EB] shadow-lg shadow-[#C66B3D]/20" : "bg-white/[0.03] text-[#C2B9B0] hover:bg-white/[0.06]"}`}>
+            className={`p-3.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all backdrop-blur-2xl shadow-xl ${paymentMethod === "momo" ? "bg-[#C66B3D]/30 text-[#F4F0EB] shadow-lg shadow-[#C66B3D]/20" : "bg-white/[0.03] text-[#C2B9B0] hover:bg-white/[0.06]"}`}>
             <Smartphone className="w-4 h-4 text-[#C66B3D]" /><span>Mobile Money</span>
           </button>
           <button type="button" onClick={() => setPaymentMethod("paypal")}
-            className={`p-3.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all backdrop-blur-2xl shadow-xl ${
-              paymentMethod === "paypal" ? "bg-[#C66B3D]/30 text-[#F4F0EB] shadow-lg shadow-[#C66B3D]/20" : "bg-white/[0.03] text-[#C2B9B0] hover:bg-white/[0.06]"}`}>
+            className={`p-3.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all backdrop-blur-2xl shadow-xl ${paymentMethod === "paypal" ? "bg-[#C66B3D]/30 text-[#F4F0EB] shadow-lg shadow-[#C66B3D]/20" : "bg-white/[0.03] text-[#C2B9B0] hover:bg-white/[0.06]"}`}>
             <CreditCard className="w-4 h-4 text-[#C66B3D]" /><span>PayPal / CB</span>
           </button>
         </div>
@@ -131,7 +117,12 @@ export function CartCheckout({ cartTotal, onCheckout, t }: CartCheckoutProps) {
           {(discountPercent > 0 || discountFixed > 0) && (
             <span className="text-xs text-[#888] line-through block">${cartTotal}</span>
           )}
-          <span className="text-2xl font-black text-[#C66B3D]">${discountedTotal}</span>
+          <span className="text-2xl font-black text-[#C66B3D]">
+            {paymentMethod === "momo" ? `${totalCFA.toLocaleString()} FCFA` : `$${discountedTotal}`}
+          </span>
+          {paymentMethod === "momo" && (
+            <span className="text-[10px] text-[#888] block">≈ ${discountedTotal} USD</span>
+          )}
         </div>
       </div>
 
