@@ -12,7 +12,7 @@ export default function AdminLoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'heaviexo2026') {
+    if (password === 'heaviexo202601') {
       document.cookie = 'admin_auth=heaviexo2026; path=/; max-age=604800';
       router.push('/admin');
       router.refresh();
