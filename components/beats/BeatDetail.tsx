@@ -5,6 +5,27 @@ import { ChevronLeft, ShoppingCart, Play, Pause, Star, MessageCircle } from "luc
 import { Beat } from "@/types";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 
+const MiniWaveform = ({ isPlaying }: { isPlaying: boolean }) => (
+  <div className="flex items-end h-4 gap-[2px] w-20 md:w-28 overflow-hidden px-1">
+    {[...Array(18)].map((_, i) => (
+      <div
+        key={i}
+        className={`flex-1 rounded-full ${isPlaying ? 'bg-[#C66B3D]' : 'bg-white/20'}`}
+        style={{
+          height: `${((i * 7 + 5) % 70) + 20}%`,
+          ...(isPlaying ? {
+            animationName: 'pulseWave',
+            animationDuration: '0.8s',
+            animationIterationCount: 'infinite',
+            animationTimingFunction: 'ease-in-out',
+            animationDelay: `${i * 0.05}s`,
+          } : {}),
+        }}
+      />
+    ))}
+  </div>
+);
+
 interface BeatDetailProps {
   beat: Beat;
   onBack: () => void;
@@ -45,6 +66,13 @@ export function BeatDetail({ beat, onBack, onGetLicense, t }: BeatDetailProps) {
 
   return (
     <main className="px-4 md:px-8 pt-8 pb-32 max-w-5xl mx-auto space-y-8 animate-fadeIn">
+      <style>{`
+        @keyframes pulseWave {
+          0% { transform: scaleY(1); opacity: 0.5; }
+          50% { transform: scaleY(2.2); opacity: 1; }
+          100% { transform: scaleY(1); opacity: 0.5; }
+        }
+      `}</style>
       <button onClick={onBack} className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-[#C2B9B0] hover:text-white transition-colors">
         <ChevronLeft className="w-4 h-4" />{t.backToCatalog || "Retour au catalogue"}
       </button>
@@ -87,6 +115,11 @@ export function BeatDetail({ beat, onBack, onGetLicense, t }: BeatDetailProps) {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* MiniWaveform sous la cover */}
+      <div className="flex justify-center py-3">
+        <MiniWaveform isPlaying={isThisPlaying} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
