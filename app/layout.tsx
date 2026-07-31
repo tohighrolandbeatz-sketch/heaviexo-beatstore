@@ -2,38 +2,31 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { db } from "@/lib/db";
-import { sql } from "drizzle-orm";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const FALLBACK: Metadata = {
-    title: "Heavi Beats - Beatstore",
-    description: "Beats professionnels pour artistes exigeants",
-  };
+export const metadata: Metadata = {
+  title: "HEAVIEXO BEATS - Pro Beatstore",
+  description: "High-definition music production studio & beatstore. Dark Trap, Melodic Drill, Boom Bap beats.",
+  icons: { icon: "/favicon.ico", shortcut: "/favicon.ico", apple: "/favicon.ico" },
+  openGraph: {
+    title: "HEAVIEXO BEATS - Pro Beatstore",
+    description: "High-definition music production studio & beatstore.",
+    url: "https://heaviexo-beatstore.vercel.app",
+    siteName: "HEAVIEXO BEATS",
+    images: [{ url: "/LOGO-BEAT.png", width: 500, height: 500 }],
+    locale: "fr_FR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "HEAVIEXO BEATS - Pro Beatstore",
+    description: "High-definition music production studio & beatstore.",
+    images: ["/LOGO-BEAT.png"],
+  },
+};
 
-  try {
-    const result = await db.execute(sql`SELECT * FROM design_config LIMIT 1`);
-    const row = result.rows?.[0];
-    if (!row) return FALLBACK;
-
-    return {
-      title: (row.site_name as string) || FALLBACK.title,
-      description: (row.description as string) || FALLBACK.description,
-      icons: row.favicon ? { icon: row.favicon as string } : undefined,
-    };
-  } catch (error) {
-    console.error("generateMetadata /api/design fallback:", error);
-    return FALLBACK;
-  }
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className="dark">
       <body className={inter.className}>
