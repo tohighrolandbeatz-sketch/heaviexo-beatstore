@@ -2,16 +2,20 @@ import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const ADMIN_EMAILS = ['prodbyheaviexo@gmail.com', 'tohighrolandbeatz@gmail.com'];
 
-// Stockage temporaire (en mémoire)
 const otpStore = new Map<string, { code: string; expires: number }>();
 
 export async function POST(request: Request) {
   const { email } = await request.json();
   if (!email) return NextResponse.json({ error: 'Email requis' }, { status: 400 });
 
+  if (!ADMIN_EMAILS.includes(email.toLowerCase().trim())) {
+    return NextResponse.json({ error: 'Email non autorisé' }, { status: 403 });
+  }
+
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore.set(email, { code, expires: Date.now() + 10 * 60 * 1000 }); // 10 minutes
+  otpStore.set(email, { code, expires: Date.now() + 10 * 60 * 1000 });
 
   try {
     await resend.emails.send({
