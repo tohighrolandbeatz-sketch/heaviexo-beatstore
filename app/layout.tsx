@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "HEAVIEXO BEATS - Pro Beatstore",
   description: "High-definition music production studio & beatstore.",
+  icons: { icon: "/favicon.ico", shortcut: "/favicon.ico", apple: "/favicon.ico" },
 };
 
 export default function RootLayout({
