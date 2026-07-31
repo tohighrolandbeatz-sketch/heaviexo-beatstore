@@ -54,3 +54,19 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-out forwards;
 }
+:root {
+  --primary: #3B82F6;
+  --secondary: #1E293B;
+  --accent: #F59E0B;
+  --background: #0F172A;
+  --surface: #1E293B;
+  --text: #F8FAFC;
+  --text-secondary: #94A3B8;
+}
+
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--text);
+  }
+}
