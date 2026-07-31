@@ -16,18 +16,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `${beat.title} - HEAVIEXO BEATS`,
-    description: `${beat.title} - ${beat.genre} ${beat.bpm}BPM ${beat.musical_key}. ${beat.description || 'Beat exclusif par HeavieXo.'}`.substring(0, 200),
+    description: `${beat.genre} • ${beat.bpm} BPM • ${beat.musical_key} • Produit par HeavieXo`,
     openGraph: {
       title: `${beat.title} - HEAVIEXO BEATS`,
       description: `${beat.genre} • ${beat.bpm} BPM • ${beat.musical_key}`,
       images: [beat.cover_url || '/LOGO-BEAT.png'],
+      audio: beat.preview_url || undefined,
       type: 'music.song',
     },
     twitter: {
-      card: 'summary_large_image',
+      card: 'player',
       title: `${beat.title} - HEAVIEXO BEATS`,
       description: `${beat.genre} • ${beat.bpm} BPM`,
       images: [beat.cover_url || '/LOGO-BEAT.png'],
+      players: beat.preview_url ? [{ playerUrl: `${process.env.NEXT_PUBLIC_URL}/beat/${id}`, streamUrl: beat.preview_url, width: 480, height: 480 }] : undefined,
+    },
+    other: {
+      'og:audio': beat.preview_url || '',
+      'og:audio:type': 'audio/mpeg',
     },
   };
 }
