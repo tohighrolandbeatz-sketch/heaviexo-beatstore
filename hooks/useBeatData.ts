@@ -6,7 +6,7 @@ import { defaultLicenses } from "@/constants/licenses";
 
 async function safeFetchJson(url: string) {
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url);
     if (!res.ok) return [];
     const text = await res.text();
     if (!text.startsWith("[")) return [];
@@ -23,7 +23,7 @@ export function useBeatData() {
   const [branding, setBranding] = useState<any>(null);
 
   useEffect(() => {
-    fetch("/api/design", { cache: "no-store" })
+    fetch("/api/design")
       .then(res => res.json())
       .then(data => {
         if (data?.data?.branding) setBranding(data.data.branding);
@@ -40,18 +40,12 @@ export function useBeatData() {
         safeFetchJson("/api/kits"),
         safeFetchJson("/api/licenses")
       ]);
-
       if (!isMounted) return;
 
       const freshBeats: Beat[] = beatsData.map((b: any) => ({
-        id: b.id,
-        title: b.title,
-        type: b.genre || b.type || "",
-        bpm: b.bpm,
-        key: b.musical_key || b.key || "",
-        mood: b.mood || "",
-        price: b.price,
-        cover: b.cover_url || b.cover || "",
+        id: b.id, title: b.title, type: b.genre || b.type || "",
+        bpm: b.bpm, key: b.musical_key || b.key || "", mood: b.mood || "",
+        price: b.price, cover: b.cover_url || b.cover || "",
         previewMp3: b.preview_url || b.previewMp3 || "",
         licenses_json: b.licenses_json || "[]",
         featured: b.featured === 1 || b.featured === true,
@@ -65,8 +59,8 @@ export function useBeatData() {
       if (licensesData && licensesData.length > 0) setLicensesList(licensesData);
     };
     syncFromServer();
-    const interval = setInterval(syncFromServer, 6000);
-    return () => { isMounted = false; clearInterval(interval); };
+    // Suppression du polling en production, on charge une seule fois
+    return () => { isMounted = false; };
   }, []);
 
   return { beatsList, kitsList, licensesList, branding };
