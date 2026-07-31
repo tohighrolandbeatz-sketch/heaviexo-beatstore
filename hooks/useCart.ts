@@ -69,6 +69,19 @@ export function useCart(licensesList: License[]) {
       return `${idx + 1}. Kit: ${item.kit?.title} - $${item.price}`;
     }).join("%0A");
 
+    // Envoyer l'email de confirmation (en arrière-plan, ne bloque pas)
+    fetch('/api/order-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerName,
+        customerEmail,
+        items: cartItems,
+        total: cartTotal,
+        paymentMethod,
+      }),
+    }).catch(() => {});
+
     if (paymentMethod === "momo") {
       const message = `*NOUVELLE COMMANDE HEAVIEXO BEATS*%0A%0A` +
         `*Artiste:* ${encodeURIComponent(customerName)}%0A` +
