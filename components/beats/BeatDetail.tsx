@@ -44,9 +44,7 @@ export function BeatDetail({ beat, onBack, onGetLicense, t }: BeatDetailProps) {
 
   const handleShare = () => {
     const url = `${window.location.origin}/beat/${beat.id}`;
-    navigator.clipboard.writeText(url).then(() => {
-      alert('Lien copié ! Partagez ce beat.');
-    });
+    navigator.clipboard.writeText(url).then(() => alert('Lien copié !'));
   };
 
   return (
@@ -70,6 +68,26 @@ export function BeatDetail({ beat, onBack, onGetLicense, t }: BeatDetailProps) {
               />
             ))}
             <span className="text-xs text-white/60 ml-2">{userRating > 0 ? `${userRating}/5` : "Noter"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Barre de lecture intégrée */}
+      <div className="bg-[#1A1311] rounded-2xl px-5 py-3 flex items-center gap-4">
+        <button onClick={() => togglePlay(beat)} className="w-10 h-10 rounded-full bg-[#C66B3D] flex items-center justify-center flex-shrink-0 hover:bg-[#FF8C5A] transition-colors">
+          {isThisPlaying ? <Pause className="w-5 h-5 text-white" /> : <Play className="w-5 h-5 text-white ml-0.5" />}
+        </button>
+        <div className="flex-1" onClick={(e: any) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const pct = (e.clientX - rect.left) / rect.width;
+          seek(pct * duration);
+        }}>
+          <div className="h-1 bg-white/10 rounded-full cursor-pointer">
+            <div className="h-full bg-[#C66B3D] rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="flex justify-between text-[10px] text-white/40 mt-1">
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(duration)}</span>
           </div>
         </div>
       </div>
