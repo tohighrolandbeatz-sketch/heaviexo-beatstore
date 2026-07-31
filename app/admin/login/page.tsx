@@ -23,10 +23,11 @@ export default function AdminLoginPage() {
       body: JSON.stringify({ email }),
     });
 
+    const data = await res.json();
+
     if (res.ok) {
       setStep('otp');
     } else {
-      const data = await res.json();
       setError(data.error || 'Erreur lors de l\'envoi');
     }
     setLoading(false);
