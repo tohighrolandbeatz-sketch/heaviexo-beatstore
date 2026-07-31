@@ -12,6 +12,9 @@ interface SharePopupProps {
 
 export function SharePopup({ beat, isOpen, onClose }: SharePopupProps) {
   const [copied, setCopied] = useState(false);
+  
+  if (!isOpen || !beat) return null;
+  
   const shareUrl = `${window.location.origin}/beat/${beat.id}`;
   const shareText = `Écoute "${beat.title}" par HeavieXo Beats 🔥`;
 
@@ -20,8 +23,6 @@ export function SharePopup({ beat, isOpen, onClose }: SharePopupProps) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  if (!isOpen || !beat) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -42,27 +43,23 @@ export function SharePopup({ beat, isOpen, onClose }: SharePopupProps) {
           </div>
         </div>
 
-        {/* Copier le lien */}
         <button onClick={handleCopy} className="w-full flex items-center justify-between p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
           <span className="text-xs text-white">📋 Copier le lien</span>
           {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-[#888]" />}
         </button>
 
-        {/* WhatsApp */}
         <a href={`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`} target="_blank" rel="noopener noreferrer"
           className="w-full flex items-center justify-between p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
           <span className="text-xs text-white">💬 WhatsApp</span>
           <span className="text-[10px] text-[#888]">Partager</span>
         </a>
 
-        {/* Twitter */}
         <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer"
           className="w-full flex items-center justify-between p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
           <span className="text-xs text-white">🐦 Twitter / X</span>
           <span className="text-[10px] text-[#888]">Tweeter</span>
         </a>
 
-        {/* Facebook */}
         <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer"
           className="w-full flex items-center justify-between p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
           <span className="text-xs text-white">📘 Facebook</span>
