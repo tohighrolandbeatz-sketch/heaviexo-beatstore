@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { User, Mail, Smartphone, CreditCard, ExternalLink, ShieldCheck } from "lucide-react";
+import { PHONE_WHATSAPP, PHONE_OWNER_NAME } from "@/constants/config";
 
 interface CartCheckoutProps {
   cartTotal: string;
@@ -75,6 +76,15 @@ export function CartCheckout({ cartTotal, onCheckout, t }: CartCheckoutProps) {
           </button>
         </div>
       </div>
+
+      {paymentMethod === "momo" && (
+        <div className="bg-[#C66B3D]/10 border border-[#C66B3D]/30 rounded-xl p-3 text-center">
+          <p className="text-[10px] text-[#C2B9B0] uppercase tracking-wider mb-1">Paiement Mobile Money via WhatsApp</p>
+          <p className="text-sm font-bold text-white">{PHONE_OWNER_NAME}</p>
+          <p className="text-sm font-bold text-[#C66B3D]">+{PHONE_WHATSAPP}</p>
+          <p className="text-[10px] text-[#9E938B] mt-1">Vous serez redirigé vers WhatsApp pour finaliser le paiement.</p>
+        </div>
+      )}
 
       <div className="flex justify-between items-center pt-2">
         <span className="text-xs text-[#C2B9B0] font-bold uppercase">{t.totalToPay}</span>
