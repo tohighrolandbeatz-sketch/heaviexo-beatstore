@@ -5,10 +5,9 @@ import { toSpotifyEmbedUrl } from "@/utils/spotify";
 
 interface SpotifySectionProps {
   t: any;
+  playlistUrl?: string;
 }
-
-export function SpotifySection({ t }: SpotifySectionProps) {
-  const [spotify, setSpotify] = useState<{ mainEmbedUrl: string; projects: { title: string; url: string }[] } | null>(null);
+export function SpotifySection({ t, playlistUrl }: SpotifySectionProps) {  const [spotify, setSpotify] = useState<{ mainEmbedUrl: string; projects: { title: string; url: string }[] } | null>(null);
 
   useEffect(() => {
     fetch("/api/design", { cache: "no-store" })
