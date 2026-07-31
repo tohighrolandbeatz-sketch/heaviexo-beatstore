@@ -29,9 +29,9 @@ export async function GET() {
       .limit(5);
 
     // Top sources
-    const topReferrers = await db.select({ referrer: analyticsEvents.referrer, count: count() })
+    const topReferrers = await db.select({ referrer: analyticsEvents.referer, count: count() })
       .from(analyticsEvents)
-      .groupBy(analyticsEvents.referrer)
+      .groupBy(analyticsEvents.referer)
       .orderBy(desc(count()))
       .limit(5);
 
