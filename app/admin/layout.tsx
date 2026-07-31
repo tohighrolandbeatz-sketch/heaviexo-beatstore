@@ -18,7 +18,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Promo & SEO', href: '/admin/promo', icon: Globe },
     { name: 'Playlist Spotify', href: '/admin/playlist', icon: ListMusic },
     { name: 'Commentaires', href: '/admin/comments', icon: MessageSquare },
-    { name: 'Utilisateurs', href: '/admin/users', icon: Users },
   ];
 
   return (
