@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
     const data = await res.json();
     if (res.ok) {
       setStep('success');
-      setTimeout(() => { router.push('/admin'); router.refresh(); }, 1500);
+      setTimeout(() => { router.push("/admin"); router.refresh(); }, 500);
     } else { setError(data.error || 'Échec'); }
     setLoading(false);
   };
