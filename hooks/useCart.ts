@@ -63,17 +63,27 @@ export function useCart(licensesList: License[]) {
     if (!customerName || !customerEmail || cartItems.length === 0) return;
     
     const itemsSummary = cartItems.map((item, idx) => {
-      let licenseName = item.license?.name;
       if (item.itemType === "beat") {
-        return `${idx + 1}. Beat: ${item.beat?.title} (${licenseName}) - $${item.price}`;
+        return `${idx + 1}. Beat: ${item.beat?.title} (${item.license?.name}) - $${item.price}`;
       }
       return `${idx + 1}. Kit: ${item.kit?.title} - $${item.price}`;
     }).join("%0A");
 
     if (paymentMethod === "momo") {
-      const message = `*COMMANDE HEAVIEXO BEATS*%0A%0A*Artiste:* ${encodeURIComponent(customerName)}%0A*Email:* ${encodeURIComponent(customerEmail)}%0A%0A*Panier:*%0A${itemsSummary}%0A%0A*Total:* $${cartTotal}%0A*Mode de Paiement:* Mobile Money (MTN / Moov)%0A%0AMerci de m'envoyer les instructions de paiement !`;
+      const message = `*NOUVELLE COMMANDE HEAVIEXO BEATS*%0A%0A` +
+        `*Artiste:* ${encodeURIComponent(customerName)}%0A` +
+        `*Email:* ${encodeURIComponent(customerEmail)}%0A%0A` +
+        `*Panier:*%0A${itemsSummary}%0A%0A` +
+        `*Total:* $${cartTotal}%0A` +
+        `*Mode de Paiement:* Mobile Money (MTN / Moov)%0A%0A` +
+        `*Instructions de paiement :*%0A` +
+        `Envoyez le montant de $${cartTotal} via MTN/Moov au :%0A` +
+        `📱 +${PHONE_WHATSAPP} (GBOSSA TOLIDJI ROLAND GAEL)%0A%0A` +
+        `Après paiement, envoyez la capture d'écran ici. Vos fichiers seront livrés immédiatement après confirmation.`;
+      
       window.open(`https://wa.me/${PHONE_WHATSAPP}?text=${message}`, "_blank");
       setCartItems([]);
+      window.location.href = "/thank-you";
     } else {
       let paypalLink = "https://www.paypal.com/ncp/payment/8ATGLJLD9WVBC";
       const firstItem = cartItems[0];
@@ -86,6 +96,7 @@ export function useCart(licensesList: License[]) {
       }
       window.open(paypalLink, "_blank");
       setCartItems([]);
+      window.location.href = "/thank-you";
     }
   };
 
