@@ -16,7 +16,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Liens & Paiements', href: '/admin/sales', icon: CreditCard },
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
     { name: 'Promo & SEO', href: '/admin/promo', icon: Globe },
-    { name: 'Playlist Spotify', href: '/admin/playlist', icon: ListMusic },
     { name: 'Commentaires', href: '/admin/comments', icon: MessageSquare },
   ];
 

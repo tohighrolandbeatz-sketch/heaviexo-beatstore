@@ -14,8 +14,10 @@ import { BeatDetail } from "@/components/beats/BeatDetail";
 import { CartModal } from "@/components/cart/CartModal";
 import { LicenseModal } from "@/components/license/LicenseModal";
 import { SharePopup } from "@/components/ui/SharePopup";
+import { SpotifySection } from "@/components/home/SpotifySection";
 import { Beat, License } from "@/types";
 import { ShoppingCart, Play, Pause, Search, Share2 } from "lucide-react";
+import { useBranding } from "@/components/ThemeProvider";
 
 const waveAnimation = `
   @keyframes pulseWave {
@@ -88,6 +90,7 @@ export default function BeatstorePage() {
   const { beatsList, licensesList, branding } = useBeatData();
   const { currentBeat, isPlaying, AudioElements, togglePlay, currentTime, duration, formatTime, setOnEnd, seek } = useAudioPlayer();
   const { cartItems, cartOpen, setCartOpen, selectedLicenseId, setSelectedLicenseId, cartTotal, handleAddBeatToCart, handleRemoveFromCart, handleCheckout } = useCart(licensesList);
+  const { branding: designBranding } = useBranding();
 
   const [detailedBeat, setDetailedBeat] = useState<Beat | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -95,19 +98,11 @@ export default function BeatstorePage() {
   const [shareBeat, setShareBeat] = useState<Beat | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("All");
-  const [designBranding, setDesignBranding] = useState<any>({});
 
   useTracking();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
-
-  useEffect(() => {
-    fetch('/api/design')
-      .then(r => r.json())
-      .then(d => setDesignBranding(d?.branding || d?.data?.branding || {}))
-      .catch(() => {});
   }, []);
 
   const filteredLicenses = selectedBeatForPurchase?.licenses_json
@@ -143,7 +138,7 @@ export default function BeatstorePage() {
     if (selectedBeatForPurchase) { handleAddBeatToCart(selectedBeatForPurchase); setSelectedBeatForPurchase(null); }
   };
 
-  const footerText = designBranding?.footerText || branding?.footerText || t.footerDesc;
+  const footerText = branding?.footerText || t.footerDesc;
   const heroBeat = beatsList.find((b: Beat) => b.featured) || beatsList[0];
 
   if (beatsList.length === 0) {
@@ -245,6 +240,7 @@ export default function BeatstorePage() {
         )}
       </main>
 
+      <SpotifySection t={t} playlistUrl={designBranding?.spotifyPlaylist || undefined} />
       <Footer t={t} setViewMode={() => {}} footerText={footerText} copyrightText={designBranding?.copyright || "© 2026 HEAVIEXO BEATS"} />
       <LicenseModal beat={selectedBeatForPurchase} licenses={filteredLicenses} selectedLicenseId={selectedLicenseId} onSelectLicense={setSelectedLicenseId} onAddToCart={handleAddToCart} onClose={() => setSelectedBeatForPurchase(null)} t={t} lang={lang} />
       <CartModal isOpen={cartOpen} onClose={() => setCartOpen(false)} cartItems={cartItems} cartTotal={cartTotal} onRemoveItem={handleRemoveFromCart} onCheckout={handleCheckout} t={t} lang={lang} />
