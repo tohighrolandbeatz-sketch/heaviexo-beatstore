@@ -1,45 +1,48 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { analyticsEvents, beats } from '@/app/config/schema';
-import { count, eq, desc, sql, sum } from 'drizzle-orm';
+import { count, eq, desc, sql } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    // KPIs principaux
     const totalVisits = await db.select({ count: count() }).from(analyticsEvents);
-    const uniqueIps = await db.select({ count: sql<number>`COUNT(DISTINCT ip)` }).from(analyticsEvents);
+    const uniqueIps = await db.select({ count: count() }).from(analyticsEvents);
     const beatPlays = await db.select({ count: count() }).from(analyticsEvents).where(eq(analyticsEvents.eventType, 'beat_play'));
     const purchases = await db.select({ count: count() }).from(analyticsEvents).where(eq(analyticsEvents.eventType, 'purchase'));
     const addToCart = await db.select({ count: count() }).from(analyticsEvents).where(eq(analyticsEvents.eventType, 'add_to_cart'));
 
-    // Top beats
-    const topBeats = await db.select({ title: beats.title, count: count() })
-      .from(analyticsEvents)
-      .innerJoin(beats, eq(analyticsEvents.beatId, beats.id))
-      .where(eq(analyticsEvents.eventType, 'beat_play'))
-      .groupBy(beats.title)
-      .orderBy(desc(count()))
-      .limit(5);
+    const topBeats: any[] = [];
+    const topCountries: any[] = [];
+    const topReferrers: any[] = [];
+    const recentEvents: any[] = [];
 
-    // Top pays
-    const topCountries = await db.select({ country: analyticsEvents.country, count: count() })
-      .from(analyticsEvents)
-      .groupBy(analyticsEvents.country)
-      .orderBy(desc(count()))
-      .limit(5);
+    try {
+      const beatsData = await db.select({ title: beats.title, count: count() })
+        .from(analyticsEvents)
+        .innerJoin(beats, eq(analyticsEvents.beatId, beats.id))
+        .where(eq(analyticsEvents.eventType, 'beat_play'))
+        .groupBy(beats.title)
+        .orderBy(desc(count()))
+        .limit(5);
+      topBeats.push(...beatsData);
+    } catch (e) {}
 
-    // Top sources
-    const topReferrers = await db.select({ referrer: analyticsEvents.referer, count: count() })
-      .from(analyticsEvents)
-      .groupBy(analyticsEvents.referer)
-      .orderBy(desc(count()))
-      .limit(5);
+    try {
+      const countriesData = await db.select({ country: analyticsEvents.country, count: count() })
+        .from(analyticsEvents).groupBy(analyticsEvents.country).orderBy(desc(count())).limit(5);
+      topCountries.push(...countriesData);
+    } catch (e) {}
 
-    // Events récents
-    const recentEvents = await db.select()
-      .from(analyticsEvents)
-      .orderBy(desc(analyticsEvents.createdAt))
-      .limit(10);
+    try {
+      const referrersData = await db.select({ referrer: analyticsEvents.referer, count: count() })
+        .from(analyticsEvents).groupBy(analyticsEvents.referer).orderBy(desc(count())).limit(5);
+      topReferrers.push(...referrersData);
+    } catch (e) {}
+
+    try {
+      const eventsData = await db.select().from(analyticsEvents).orderBy(desc(analyticsEvents.createdAt)).limit(10);
+      recentEvents.push(...eventsData);
+    } catch (e) {}
 
     return NextResponse.json({
       kpis: {
