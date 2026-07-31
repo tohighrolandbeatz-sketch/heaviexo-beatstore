@@ -1,30 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, ShoppingCart, Play, Pause, Star, MessageCircle } from "lucide-react";
+import { ChevronLeft, ShoppingCart, Play, Pause, Star, MessageCircle, Share2 } from "lucide-react";
 import { Beat } from "@/types";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
-
-const MiniWaveform = ({ isPlaying }: { isPlaying: boolean }) => (
-  <div className="flex items-end h-4 gap-[2px] w-20 md:w-28 overflow-hidden px-1">
-    {[...Array(18)].map((_, i) => (
-      <div
-        key={i}
-        className={`flex-1 rounded-full ${isPlaying ? 'bg-[#C66B3D]' : 'bg-white/20'}`}
-        style={{
-          height: `${((i * 7 + 5) % 70) + 20}%`,
-          ...(isPlaying ? {
-            animationName: 'pulseWave',
-            animationDuration: '0.8s',
-            animationIterationCount: 'infinite',
-            animationTimingFunction: 'ease-in-out',
-            animationDelay: `${i * 0.05}s`,
-          } : {}),
-        }}
-      />
-    ))}
-  </div>
-);
 
 interface BeatDetailProps {
   beat: Beat;
@@ -37,7 +16,6 @@ export function BeatDetail({ beat, onBack, onGetLicense, t }: BeatDetailProps) {
   const { currentBeat, isPlaying, togglePlay, currentTime, duration, formatTime, seek } = useAudioPlayer();
   const isThisPlaying = currentBeat?.id === beat.id && isPlaying;
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const [rating, setRating] = useState(0);
   const [userRating, setUserRating] = useState(0);
   const [pseudo, setPseudo] = useState("");
   const [comment, setComment] = useState("");
@@ -64,62 +42,36 @@ export function BeatDetail({ beat, onBack, onGetLicense, t }: BeatDetailProps) {
     }
   };
 
+  const handleShare = () => {
+    const url = `${window.location.origin}/beat/${beat.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      alert('Lien copié ! Partagez ce beat.');
+    });
+  };
+
   return (
-    <main className="px-4 md:px-8 pt-8 pb-32 max-w-5xl mx-auto space-y-8 animate-fadeIn">
-      <style>{`
-        @keyframes pulseWave {
-          0% { transform: scaleY(1); opacity: 0.5; }
-          50% { transform: scaleY(2.2); opacity: 1; }
-          100% { transform: scaleY(1); opacity: 0.5; }
-        }
-      `}</style>
+    <main className="px-4 md:px-8 pt-8 pb-32 max-w-5xl mx-auto space-y-6 animate-fadeIn">
       <button onClick={onBack} className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-[#C2B9B0] hover:text-white transition-colors">
         <ChevronLeft className="w-4 h-4" />{t.backToCatalog || "Retour au catalogue"}
       </button>
 
-      <div className="relative group w-full aspect-square max-h-[400px] rounded-3xl overflow-hidden shadow-2xl">
+      <div className="relative w-full aspect-square max-h-[400px] rounded-3xl overflow-hidden shadow-2xl">
         <img src={beat.cover} alt={beat.title} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-6">
-          {isThisPlaying && (
-            <div className="w-full mb-4" onClick={(e: any) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const pct = (e.clientX - rect.left) / rect.width;
-              seek(pct * duration);
-            }}>
-              <div className="h-1 bg-white/20 rounded-full cursor-pointer">
-                <div className="h-full bg-[#C66B3D] rounded-full transition-all" style={{ width: `${progress}%` }} />
-              </div>
-              <div className="flex justify-between text-[10px] text-white/60 mt-1">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-          )}
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-black text-[#C66B3D] uppercase tracking-widest">{beat.type}</span>
-              <h1 className="text-2xl md:text-4xl font-black text-white uppercase">{beat.title}</h1>
-              <div className="flex items-center gap-1 mt-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`w-4 h-4 cursor-pointer transition-colors ${star <= (userRating || rating) ? 'text-yellow-400 fill-yellow-400' : 'text-white/30'}`}
-                    onClick={() => setUserRating(star)}
-                  />
-                ))}
-                <span className="text-xs text-white/60 ml-2">{userRating > 0 ? `${userRating}/5` : "Noter"}</span>
-              </div>
-            </div>
-            <button onClick={() => togglePlay(beat)} className="w-16 h-16 rounded-full bg-[#C66B3D] flex items-center justify-center shadow-lg hover:scale-105 transition-transform flex-shrink-0">
-              {isThisPlaying ? <Pause className="w-7 h-7 text-white" /> : <Play className="w-7 h-7 text-white ml-1" />}
-            </button>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute bottom-6 left-6 right-6">
+          <span className="text-[10px] font-black text-[#C66B3D] uppercase tracking-widest">{beat.type}</span>
+          <h1 className="text-2xl md:text-4xl font-black text-white uppercase">{beat.title}</h1>
+          <div className="flex items-center gap-1 mt-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={`w-4 h-4 cursor-pointer transition-colors ${star <= userRating ? 'text-yellow-400 fill-yellow-400' : 'text-white/30'}`}
+                onClick={() => setUserRating(star)}
+              />
+            ))}
+            <span className="text-xs text-white/60 ml-2">{userRating > 0 ? `${userRating}/5` : "Noter"}</span>
           </div>
         </div>
-      </div>
-
-      {/* MiniWaveform sous la cover */}
-      <div className="flex justify-center py-3">
-        <MiniWaveform isPlaying={isThisPlaying} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -131,7 +83,10 @@ export function BeatDetail({ beat, onBack, onGetLicense, t }: BeatDetailProps) {
           </div>
           <p className="text-sm text-[#C2B9B0] leading-relaxed">{beat.description || "Aucune description disponible."}</p>
         </div>
-        <div className="flex items-start justify-end">
+        <div className="flex items-start justify-end gap-2">
+          <button onClick={handleShare} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-all" title="Partager">
+            <Share2 className="w-5 h-5" />
+          </button>
           <button onClick={() => onGetLicense(beat)} className="bg-[#C66B3D] hover:bg-[#FF8C5A] text-white font-extrabold px-6 py-4 rounded-2xl text-sm uppercase flex items-center gap-2 shadow-lg shadow-[#C66B3D]/20 transition-all w-full md:w-auto justify-center">
             <ShoppingCart className="w-5 h-5" />{t.getLicense || "OBTENIR UNE LICENCE"}
           </button>
