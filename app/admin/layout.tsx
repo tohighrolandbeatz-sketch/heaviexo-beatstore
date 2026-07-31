@@ -12,7 +12,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Catalogue', href: '/admin/beats', icon: Music },
     { name: 'Sound Kits', href: '/admin/kits', icon: Package },
     { name: 'Licences & Prix', href: '/admin/licenses', icon: Tags },
-    { name: 'Pages', href: '/admin/pages', icon: Layers },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
     { name: 'Liens & Paiements', href: '/admin/sales', icon: CreditCard },
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
