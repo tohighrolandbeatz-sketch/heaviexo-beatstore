@@ -211,7 +211,7 @@ export default function BeatstorePage() {
                       <h4 className="font-bold text-sm truncate text-white group-hover:text-[#C66B3D]">{beat.title}</h4>
                       <p className="text-[10px] text-[#888] truncate">{beat.type || 'Trap'} • {beat.bpm} BPM</p>
                     </div>
-                    <div className="hidden md:flex items-end gap-[2px] h-8 flex-1 justify-center cursor-pointer" onClick={(e) => { e.stopPropagation(); togglePlay(beat); }}>
+                    <div className="flex items-end gap-[2px] h-8 flex-1 justify-center cursor-pointer" onClick={(e) => { e.stopPropagation(); togglePlay(beat); }}>
                       <MiniWaveform isPlaying={isThisPlaying} />
                     </div>
                     <button onClick={(e) => handleBeatLicense(beat, e)} className="bg-[#C66B3D] hover:bg-[#d87847] text-white p-2 rounded-xl shadow-sm transition-all flex-shrink-0" title="Acheter">
