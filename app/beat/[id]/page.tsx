@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${beat.title} - HEAVIEXO BEATS`,
       description: `${beat.genre} • ${beat.bpm} BPM`,
       images: [beat.cover_url || '/LOGO-BEAT.png'],
-      players: beat.preview_url ? [{ playerUrl: `${process.env.NEXT_PUBLIC_URL}/beat/${id}`, streamUrl: beat.preview_url, width: 480, height: 480 }] : undefined,
+      players: beat.preview_url ? [{ playerUrl: `https://heaviexo-beatstore.vercel.app/beat/${id}`, streamUrl: beat.preview_url, width: 480, height: 480 }] : undefined,
     },
     other: {
       'og:audio': beat.preview_url || '',
