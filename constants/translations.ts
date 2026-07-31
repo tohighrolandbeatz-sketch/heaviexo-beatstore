@@ -66,6 +66,8 @@ export const translations = {
     albumProject: "PROJET COMPLET • 10+ pistes",
     perTrack: "PAR PISTE",
     tailored: "SUR-MESURE",
+    momoInfoTitle: "Paiement Mobile Money via WhatsApp",
+    momoInfoSub: "Vous serez redirigé vers WhatsApp pour finaliser le paiement.",
     epFeatures: [
       "Pack de 10–20 beats adaptés à ton style",
       "Tu choisis tes favoris — garde ceux que tu aimes",
@@ -189,6 +191,8 @@ export const translations = {
     albumProject: "FULL PROJECT • 10+ tracks",
     perTrack: "PER TRACK",
     tailored: "TAILORED",
+    momoInfoTitle: "Mobile Money Payment via WhatsApp",
+    momoInfoSub: "You will be redirected to WhatsApp to complete the payment.",
     epFeatures: [
       "Pack of 10–20 beats curated to your style",
       "You pick your favorites — keep the ones you love",

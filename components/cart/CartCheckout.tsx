@@ -79,10 +79,10 @@ export function CartCheckout({ cartTotal, onCheckout, t }: CartCheckoutProps) {
 
       {paymentMethod === "momo" && (
         <div className="bg-[#C66B3D]/10 border border-[#C66B3D]/30 rounded-xl p-3 text-center">
-          <p className="text-[10px] text-[#C2B9B0] uppercase tracking-wider mb-1">Paiement Mobile Money via WhatsApp</p>
+          <p className="text-[10px] text-[#C2B9B0] uppercase tracking-wider mb-1">{t.momoInfoTitle}</p>
           <p className="text-sm font-bold text-white">{PHONE_OWNER_NAME}</p>
           <p className="text-sm font-bold text-[#C66B3D]">+{PHONE_WHATSAPP}</p>
-          <p className="text-[10px] text-[#9E938B] mt-1">Vous serez redirigé vers WhatsApp pour finaliser le paiement.</p>
+          <p className="text-[10px] text-[#9E938B] mt-1">{t.momoInfoSub}</p>
         </div>
       )}
 
