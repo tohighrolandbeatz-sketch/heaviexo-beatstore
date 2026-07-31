@@ -5,6 +5,7 @@ import { translations } from "@/constants/translations";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useBeatData } from "@/hooks/useBeatData";
 import { useCart } from "@/hooks/useCart";
+import { useTracking } from "@/hooks/useTracking";
 import { Header } from "@/components/layout/Header";
 import { MobileMenu } from "@/components/layout/MobileMenu";
 import { Footer } from "@/components/layout/Footer";
@@ -94,6 +95,8 @@ export default function BeatstorePage() {
   const [shareBeat, setShareBeat] = useState<Beat | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("All");
+
+  useTracking();
 
   useEffect(() => {
     window.scrollTo(0, 0);

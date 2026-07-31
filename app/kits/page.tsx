@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { translations } from "@/constants/translations";
 import { useBeatData } from "@/hooks/useBeatData";
 import { useCart } from "@/hooks/useCart";
+import { useTracking } from "@/hooks/useTracking";
 import { Header } from "@/components/layout/Header";
 import { MobileMenu } from "@/components/layout/MobileMenu";
 import { Footer } from "@/components/layout/Footer";
@@ -18,6 +19,8 @@ export default function KitsPage() {
   const { cartItems, cartOpen, setCartOpen, cartTotal, handleAddKitToCart, handleRemoveFromCart, handleCheckout } = useCart(licensesList);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  useTracking();
+
   const footerText = branding?.footerText || t.footerDesc;
 
   return (
@@ -26,7 +29,6 @@ export default function KitsPage() {
       <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} setViewMode={() => {}} t={t} />
 
       <main className="px-4 md:px-10 pt-6 max-w-7xl mx-auto pb-20">
-        {/* Hero Kits */}
         <section className="text-center mb-16 space-y-4">
           <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full bg-[#C66B3D]/20 text-[#C66B3D]">
             {t.soundKits}
@@ -39,7 +41,6 @@ export default function KitsPage() {
           </p>
         </section>
 
-        {/* Grille des kits */}
         {kitsList.length === 0 ? (
           <div className="text-center py-20">
             <Package className="w-12 h-12 text-[#333] mx-auto mb-4" />
@@ -49,7 +50,6 @@ export default function KitsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {kitsList.map((kit: any) => (
               <div key={kit.id} className="bg-[#111]/90 border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all group">
-                {/* Cover */}
                 <div className="relative aspect-square overflow-hidden">
                   <img src={kit.cover || '/placeholder.jpg'} alt={kit.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
@@ -60,14 +60,12 @@ export default function KitsPage() {
                   </div>
                 </div>
 
-                {/* Infos */}
                 <div className="p-5 space-y-4">
                   <div>
                     <h3 className="font-bold text-white text-lg">{kit.title}</h3>
                     <p className="text-xs text-[#888] mt-1 line-clamp-2">{kit.description || 'Kit de production professionnel'}</p>
                   </div>
 
-                  {/* Stats */}
                   <div className="flex items-center gap-4 text-[10px] text-[#888]">
                     {kit.itemCount && (
                       <span className="flex items-center gap-1">
@@ -81,7 +79,6 @@ export default function KitsPage() {
                     )}
                   </div>
 
-                  {/* Prix + Acheter */}
                   <div className="flex items-center justify-between pt-2 border-t border-white/5">
                     <span className="text-xl font-black text-white">${kit.price || '24.99'}</span>
                     <button
