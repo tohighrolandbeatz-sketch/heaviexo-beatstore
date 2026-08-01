@@ -42,6 +42,7 @@ export async function GET() {
         heroSubtitle: row.hero_subtitle,
         heroBadge: row.hero_badge,
         spotifyPlaylist: row.spotify_playlist || '',
+        heroBg: row.hero_bg || '',
         servicesConfig: (() => { try { return JSON.parse(row.services_config as string || '{}'); } catch { return {}; } })(),
         showFooterLogo: row.show_footer_logo !== false,
         social: row.social_links ? JSON.parse(row.social_links as string) : {},
