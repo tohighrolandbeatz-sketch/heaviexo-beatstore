@@ -1,7 +1,16 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useSyncExternalStore } from 'react';
+
+export interface PlayerBeat {
+  id: string;
+  title: string;
+  cover?: string;
+  previewMp3?: string;
+  type?: string;
+}
 
 export interface PlayerState {
-  beat: { id: string; title: string; cover?: string; previewMp3?: string; type?: string } | null;
+  beat: PlayerBeat | null;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -14,50 +23,70 @@ if (typeof window !== 'undefined') {
   globalAudio.volume = 0.8;
 }
 
-export function usePlayer() {
-  const [state, setState] = useState<PlayerState>({
-    beat: null,
-    isPlaying: false,
-    currentTime: 0,
-    duration: 0,
+// État GLOBAL partagé entre TOUS les composants qui appellent usePlayer()
+let store: PlayerState = {
+  beat: null,
+  isPlaying: false,
+  currentTime: 0,
+  duration: 0,
+};
+
+const listeners = new Set<() => void>();
+
+function setStore(patch: Partial<PlayerState>) {
+  store = { ...store, ...patch };
+  listeners.forEach((listener) => listener());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function getSnapshot(): PlayerState {
+  return store;
+}
+
+function getServerSnapshot(): PlayerState {
+  return { beat: null, isPlaying: false, currentTime: 0, duration: 0 };
+}
+
+// Callback "fin de lecture" — géré globalement (un seul actif à la fois)
+let onEndCallback: (() => void) | null = null;
+
+// Écouteurs attachés une seule fois sur l'élément audio global
+let listenersAttached = false;
+function attachAudioListeners() {
+  if (listenersAttached || !globalAudio) return;
+  listenersAttached = true;
+  const audio = globalAudio;
+
+  audio.addEventListener('timeupdate', () => setStore({ currentTime: audio.currentTime }));
+  audio.addEventListener('loadedmetadata', () => setStore({ duration: audio.duration }));
+  audio.addEventListener('ended', () => {
+    setStore({ isPlaying: false });
+    if (onEndCallback) onEndCallback();
   });
-  const onEndRef = useRef<(() => void) | null>(null);
+}
+attachAudioListeners();
 
-  useEffect(() => {
-    const audio = globalAudio;
-    if (!audio) return;
+export function usePlayer() {
+  // useSyncExternalStore garantit que TOUS les composants voient le même état
+  // et se re-rendent quand il change, où qu'ils soient dans l'arbre React.
+  const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-    const onTimeUpdate = () => setState(s => ({ ...s, currentTime: audio.currentTime }));
-    const onLoadedMetadata = () => setState(s => ({ ...s, duration: audio.duration }));
-    const onEnded = () => {
-      setState(s => ({ ...s, isPlaying: false }));
-      if (onEndRef.current) onEndRef.current();
-    };
-
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('loadedmetadata', onLoadedMetadata);
-    audio.addEventListener('ended', onEnded);
-
-    return () => {
-      audio.removeEventListener('timeupdate', onTimeUpdate);
-      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
-      audio.removeEventListener('ended', onEnded);
-      // Ne pas détruire l'audio ici ! Il continue pour le store
-    };
-  }, []);
-
-  const play = useCallback((beat: PlayerState['beat']) => {
+  const play = useCallback((beat: PlayerBeat) => {
     const audio = globalAudio;
     if (!audio || !beat?.previewMp3) return;
 
-    if (state.beat?.id === beat.id) {
-      // Même beat : toggle play/pause
+    if (store.beat?.id === beat.id) {
+      // Même beat : toggle play/pause (continue au lieu de relancer)
       if (audio.paused) {
         audio.play();
-        setState(s => ({ ...s, isPlaying: true }));
+        setStore({ isPlaying: true });
       } else {
         audio.pause();
-        setState(s => ({ ...s, isPlaying: false }));
+        setStore({ isPlaying: false });
       }
     } else {
       // Nouveau beat : stop l'ancien d'abord
@@ -65,39 +94,40 @@ export function usePlayer() {
       audio.currentTime = 0;
       audio.src = beat.previewMp3;
       audio.play().catch(() => {});
-      setState({ beat, isPlaying: true, currentTime: 0, duration: 0 });
+      setStore({ beat, isPlaying: true, currentTime: 0, duration: 0 });
     }
-  }, [state.beat?.id]);
+  }, []);
 
-  const togglePlay = useCallback((beat?: PlayerState['beat']) => {
-    if (beat) play(beat);
-    else {
-      const audio = globalAudio;
-      if (!audio) return;
-      if (audio.paused) {
-        audio.play();
-        setState(s => ({ ...s, isPlaying: true }));
-      } else {
-        audio.pause();
-        setState(s => ({ ...s, isPlaying: false }));
-      }
+  const togglePlay = useCallback((beat?: PlayerBeat) => {
+    if (beat) {
+      play(beat);
+      return;
+    }
+    const audio = globalAudio;
+    if (!audio) return;
+    if (audio.paused) {
+      audio.play();
+      setStore({ isPlaying: true });
+    } else {
+      audio.pause();
+      setStore({ isPlaying: false });
     }
   }, [play]);
 
   const pause = useCallback(() => {
     globalAudio?.pause();
-    setState(s => ({ ...s, isPlaying: false }));
+    setStore({ isPlaying: false });
   }, []);
 
   const seek = useCallback((time: number) => {
     if (globalAudio) {
       globalAudio.currentTime = time;
-      setState(s => ({ ...s, currentTime: time }));
+      setStore({ currentTime: time });
     }
   }, []);
 
   const setOnEnd = useCallback((cb: (() => void) | null) => {
-    onEndRef.current = cb;
+    onEndCallback = cb;
   }, []);
 
   const formatTime = (t: number) => {
