@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileAudio, Save, DollarSign } from 'lucide-react';
+import { FileAudio, Save, DollarSign, Check } from 'lucide-react';
 
 export default function AdminLicensesPage() {
   const [licenses, setLicenses] = useState<any[]>([]);
@@ -15,18 +15,24 @@ export default function AdminLicensesPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const updatePrice = (id: string, price: number) => {
-    setLicenses(prev => prev.map(l => l.id === id ? { ...l, price } : l));
-  };
-
-  const updateName = (id: string, name: string) => {
-    setLicenses(prev => prev.map(l => l.id === id ? { ...l, name } : l));
+  const updateField = (id: string, field: string, value: any) => {
+    setLicenses(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
   };
 
   const handleSave = async () => {
-    // Pour l'instant, on sauvegarde en localStorage admin (pas d'API PATCH sur licenses)
-    // TODO: Créer une API PATCH pour les licences
-    localStorage.setItem('admin_licenses', JSON.stringify(licenses));
+    for (const lic of licenses) {
+      await fetch('/api/licenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: lic.id,
+          name: lic.name,
+          price: lic.price,
+          description: lic.description || '',
+          features: Array.isArray(lic.features) ? JSON.stringify(lic.features) : (lic.features || '[]'),
+        }),
+      });
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -40,10 +46,10 @@ export default function AdminLicensesPage() {
           <h2 className="text-2xl font-bold text-white uppercase tracking-wider flex items-center gap-2">
             <FileAudio className="w-5 h-5 text-[#ff6b35]" /> Licences & Prix
           </h2>
-          <p className="text-xs text-gray-400 mt-1">Gérez les types de licences et leurs prix.</p>
+          <p className="text-xs text-gray-400 mt-1">Modifiez tout et sauvegardez. Les changements s'appliquent immédiatement sur le site.</p>
         </div>
         <button onClick={handleSave} className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${saved ? 'bg-emerald-500 text-white' : 'bg-[#ff6b35] text-white hover:bg-[#e05a2b]'}`}>
-          {saved ? '✓ Sauvegardé' : 'Sauvegarder'}
+          {saved ? <><Check className="w-4 h-4 inline mr-1" /> Sauvegardé</> : 'Sauvegarder tout'}
         </button>
       </div>
 
@@ -52,24 +58,36 @@ export default function AdminLicensesPage() {
           <div key={lic.id} className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-4">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Nom de la licence</label>
-              <input type="text" value={lic.name || ''} onChange={(e) => updateName(lic.id, e.target.value)}
+              <input type="text" value={lic.name || ''} onChange={(e) => updateField(lic.id, 'name', e.target.value)}
                 className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#ff6b35]" />
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Prix ($)</label>
               <div className="relative">
                 <DollarSign className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#888]" />
-                <input type="number" value={lic.price || 0} onChange={(e) => updatePrice(lic.id, Number(e.target.value))}
+                <input type="number" step="0.01" value={lic.price || 0} onChange={(e) => updateField(lic.id, 'price', parseFloat(e.target.value))}
                   className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl pl-10 pr-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#ff6b35]" />
               </div>
             </div>
-            <div className="text-[10px] text-gray-500 space-y-1">
-              {lic.features && JSON.parse(lic.features || '[]').map((f: string, i: number) => (
-                <div key={i} className="flex items-center gap-2"><span className="text-[#ff6b35]">✓</span> {f}</div>
-              ))}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Description</label>
+              <textarea value={lic.description || ''} onChange={(e) => updateField(lic.id, 'description', e.target.value)}
+                className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#ff6b35] h-20" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Caractéristiques (une par ligne)</label>
+              <textarea
+                value={Array.isArray(lic.features) ? lic.features.join('\n') : (typeof lic.features === 'string' ? (() => { try { return JSON.parse(lic.features).join('\n'); } catch { return lic.features; } })() : '')}
+                onChange={(e) => updateField(lic.id, 'features', e.target.value.split('\n').filter((f: string) => f.trim()))}
+                className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#ff6b35] h-28"
+                placeholder="Une caractéristique par ligne"
+              />
             </div>
           </div>
         ))}
+        {licenses.length === 0 && (
+          <div className="col-span-2 text-center py-10 text-gray-500">Aucune licence trouvée. Ajoutez-les via le SQL Editor.</div>
+        )}
       </div>
     </div>
   );
