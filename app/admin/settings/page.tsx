@@ -17,8 +17,7 @@ function resizeImage(file: File, maxWidth: number, maxHeight: number): Promise<F
       if (w > maxWidth) { h = (h * maxWidth) / w; w = maxWidth; }
       if (h > maxHeight) { w = (w * maxHeight) / h; h = maxHeight; }
       canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0, w, h);
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
       canvas.toBlob((blob) => {
         resolve(new File([blob!], file.name, { type: 'image/webp' }));
       }, 'image/webp', 0.8);
@@ -38,7 +37,6 @@ export default function AdminSettingsPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [uploadingHeroBg, setUploadingHeroBg] = useState(false);
-  const [showSocials, setShowSocials] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
   const heroBgInputRef = useRef<HTMLInputElement>(null);
@@ -60,8 +58,7 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     setSaving(true); setSaveError(null);
     try {
-      const res = await fetch('/api/design', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ branding, theme: { preset: activePreset, custom: activePreset === 'CUSTOM' ? theme : null } }), cache: 'no-store' });
-      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err?.error || 'Échec'); }
+      await fetch('/api/design', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ branding, theme: { preset: activePreset, custom: activePreset === 'CUSTOM' ? theme : null } }), cache: 'no-store' });
       await loadDesign();
       setSaved(true); setTimeout(() => setSaved(false), 2000);
     } catch (e: any) { setSaveError(e.message); }
@@ -136,29 +133,33 @@ export default function AdminSettingsPage() {
           <div><label className="block text-xs text-gray-400 mb-1">WhatsApp</label><input type="text" value={branding?.whatsapp || ''} onChange={(e) => updateBranding('whatsapp', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
           <div><label className="block text-xs text-gray-400 mb-1">Email</label><input type="text" value={branding?.email || ''} onChange={(e) => updateBranding('email', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
         </div>
-        
-        {/* Réseaux sociaux avec œil */}
-        <div>
-          <button onClick={() => setShowSocials(!showSocials)} className="text-xs text-[#ff6b35] hover:text-[#FF8C5A] flex items-center gap-1">
-            {showSocials ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-            {showSocials ? 'Masquer' : 'Afficher'} les réseaux sociaux
-          </button>
+
+        <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-2">Réseaux sociaux — œil pour afficher/masquer</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {['instagram', 'youtube', 'tiktok', 'spotify', 'discord', 'telegram', 'twitter'].map(platform => {
+            const val = branding?.social?.[platform] || '';
+            const hidden = val === '__HIDDEN__';
+            return (
+              <div key={platform}>
+                <div className="flex items-center gap-2 mb-1">
+                  <button type="button" onClick={() => updateSocial(platform, hidden ? '' : '__HIDDEN__')} className="text-[#888] hover:text-white">
+                    {hidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                  </button>
+                  <label className="text-[10px] text-gray-400 capitalize">{platform}</label>
+                </div>
+                <input type="text" value={hidden ? '' : val} onChange={(e) => updateSocial(platform, e.target.value)} placeholder={`https://${platform}.com/heaviexo`} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-3 py-2 text-white text-[10px] focus:outline-none focus:border-[#ff6b35] placeholder:text-gray-600" />
+              </div>
+            );
+          })}
         </div>
-        {showSocials && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {['instagram', 'youtube', 'tiktok', 'spotify', 'discord', 'telegram', 'twitter'].map(platform => (
-              <div key={platform}><label className="block text-[10px] text-gray-400 mb-1 capitalize">{platform}</label><input type="text" value={branding?.social?.[platform] || ''} onChange={(e) => updateSocial(platform, e.target.value)} placeholder={`https://${platform}.com/heaviexo`} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-3 py-2 text-white text-[10px] focus:outline-none focus:border-[#ff6b35] placeholder:text-gray-600" /></div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* THÈMES */}
       <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Palette className="w-4 h-4 text-[#ff6b35]" /> Thème</h3>
         <div className="flex flex-wrap gap-2">
-          {PRESETS.map((preset) => (<button key={preset.id} onClick={() => handlePresetChange(preset.id)} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activePreset === preset.id ? 'bg-[#ff6b35] text-white' : 'bg-[#201d1a] text-gray-400 hover:text-white'}`} style={activePreset === preset.id ? {} : { borderLeft: `3px solid ${preset.primary}` }}>{preset.name}</button>))}
-          <button onClick={() => { setActivePreset('CUSTOM'); if (activePreset !== 'CUSTOM') setTheme(DEFAULT_CUSTOM); }} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activePreset === 'CUSTOM' ? 'bg-[#ff6b35] text-white' : 'bg-[#201d1a] text-gray-400 hover:text-white'}`}>Custom</button>
+          {PRESETS.map((preset) => (<button type="button" key={preset.id} onClick={() => handlePresetChange(preset.id)} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activePreset === preset.id ? 'bg-[#ff6b35] text-white' : 'bg-[#201d1a] text-gray-400 hover:text-white'}`} style={activePreset === preset.id ? {} : { borderLeft: `3px solid ${preset.primary}` }}>{preset.name}</button>))}
+          <button type="button" onClick={() => { setActivePreset('CUSTOM'); if (activePreset !== 'CUSTOM') setTheme(DEFAULT_CUSTOM); }} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activePreset === 'CUSTOM' ? 'bg-[#ff6b35] text-white' : 'bg-[#201d1a] text-gray-400 hover:text-white'}`}>Custom</button>
         </div>
         {activePreset === 'CUSTOM' && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
@@ -171,7 +172,7 @@ export default function AdminSettingsPage() {
           <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: theme?.muted }}>Aperçu</p>
           <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-lg" style={{ background: theme?.primary }} /><span className="font-bold" style={{ color: theme?.text }}>Titre exemple</span></div>
           <p className="text-xs mt-1" style={{ color: theme?.muted }}>Ceci est un aperçu du thème sélectionné.</p>
-          <button className="mt-2 px-3 py-1 rounded-lg text-[10px] font-bold" style={{ background: theme?.primary, color: '#fff' }}>Bouton</button>
+          <button type="button" className="mt-2 px-3 py-1 rounded-lg text-[10px] font-bold" style={{ background: theme?.primary, color: '#fff' }}>Bouton</button>
         </div>
       </div>
 
@@ -202,22 +203,22 @@ export default function AdminSettingsPage() {
               {(branding?.servicesConfig?.[key]?.features || ['']).map((feat: string, i: number) => (
                 <div key={i} className="flex gap-2 mb-1">
                   <input type="text" value={feat} onChange={(e) => { const feats = [...(branding?.servicesConfig?.[key]?.features || [''])]; feats[i] = e.target.value; updateServicesConfig(key, 'features', feats); }} placeholder={`Feature ${i + 1}`} className="flex-1 bg-black/50 border border-[#332e2a] rounded-lg px-3 py-1.5 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
-                  {i > 0 && (<button onClick={() => { const feats = (branding?.servicesConfig?.[key]?.features || ['']).filter((_: any, idx: number) => idx !== i); updateServicesConfig(key, 'features', feats.length === 0 ? [''] : feats); }} className="text-red-400 hover:text-red-300 p-1"><Trash2 className="w-3 h-3" /></button>)}
+                  {i > 0 && (<button type="button" onClick={() => { const feats = (branding?.servicesConfig?.[key]?.features || ['']).filter((_: any, idx: number) => idx !== i); updateServicesConfig(key, 'features', feats.length === 0 ? [''] : feats); }} className="text-red-400 hover:text-red-300 p-1"><Trash2 className="w-3 h-3" /></button>)}
                 </div>
               ))}
-              <button onClick={() => { const feats = [...(branding?.servicesConfig?.[key]?.features || ['']), '']; updateServicesConfig(key, 'features', feats); }} className="text-[10px] text-[#ff6b35] hover:text-[#FF8C5A] flex items-center gap-1 mt-1"><Plus className="w-3 h-3" /> Ajouter</button>
+              <button type="button" onClick={() => { const feats = [...(branding?.servicesConfig?.[key]?.features || ['']), '']; updateServicesConfig(key, 'features', feats); }} className="text-[10px] text-[#ff6b35] hover:text-[#FF8C5A] flex items-center gap-1 mt-1"><Plus className="w-3 h-3" /> Ajouter</button>
             </div>
           </div>
         ))}
         <div className="bg-[#201d1a] rounded-xl p-4 space-y-3">
-          <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-[#ff6b35] uppercase">FAQ</span><button onClick={addFaqItem} className="text-[10px] text-[#ff6b35] hover:text-[#FF8C5A] flex items-center gap-1"><Plus className="w-3 h-3" /> Ajouter</button></div>
+          <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-[#ff6b35] uppercase">FAQ</span><button type="button" onClick={addFaqItem} className="text-[10px] text-[#ff6b35] hover:text-[#FF8C5A] flex items-center gap-1"><Plus className="w-3 h-3" /> Ajouter</button></div>
           {(branding?.servicesConfig?.faq || []).map((item: any, i: number) => (
             <div key={i} className="flex gap-2 items-start">
               <div className="flex-1 space-y-1">
                 <input type="text" value={item.q || ''} onChange={(e) => updateFaqItem(i, 'q', e.target.value)} placeholder="Question" className="w-full bg-black/50 border border-[#332e2a] rounded-lg px-3 py-1.5 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
                 <textarea value={item.a || ''} onChange={(e) => updateFaqItem(i, 'a', e.target.value)} placeholder="Réponse" rows={2} className="w-full bg-black/50 border border-[#332e2a] rounded-lg px-3 py-1.5 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
               </div>
-              <button onClick={() => removeFaqItem(i)} className="text-red-400 hover:text-red-300 p-1 mt-1"><Trash2 className="w-3 h-3" /></button>
+              <button type="button" onClick={() => removeFaqItem(i)} className="text-red-400 hover:text-red-300 p-1 mt-1"><Trash2 className="w-3 h-3" /></button>
             </div>
           ))}
         </div>
