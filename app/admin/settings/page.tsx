@@ -1,12 +1,31 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Check, Palette, Image, Type, Star, Upload } from 'lucide-react';
+import { Check, Palette, Image, Type, Star, Upload, Wrench, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { upload } from '@vercel/blob/client';
 import { THEME_PRESETS, DEFAULT_THEME, type ThemePresetId } from '@/constants/themes';
 
 const PRESETS = (Object.keys(THEME_PRESETS) as ThemePresetId[]).map((id) => ({ id, name: id.charAt(0) + id.slice(1).toLowerCase(), ...THEME_PRESETS[id] }));
 const DEFAULT_CUSTOM = DEFAULT_THEME;
+
+function resizeImage(file: File, maxWidth: number, maxHeight: number): Promise<File> {
+  return new Promise((resolve) => {
+    const img = document.createElement('img');
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxWidth) { h = (h * maxWidth) / w; w = maxWidth; }
+      if (h > maxHeight) { w = (w * maxHeight) / h; h = maxHeight; }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob((blob) => {
+        resolve(new File([blob!], file.name, { type: 'image/webp' }));
+      }, 'image/webp', 0.8);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 export default function AdminSettingsPage() {
   const [branding, setBranding] = useState<any>({});
@@ -18,8 +37,11 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const [uploadingHeroBg, setUploadingHeroBg] = useState(false);
+  const [showSocials, setShowSocials] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
+  const heroBgInputRef = useRef<HTMLInputElement>(null);
 
   const loadDesign = async () => {
     const res = await fetch('/api/design', { cache: 'no-store' });
@@ -49,9 +71,26 @@ export default function AdminSettingsPage() {
   const updateBranding = (key: string, value: any) => { setBranding((prev: any) => ({ ...prev, [key]: value })); };
   const updateSocial = (platform: string, value: string) => { setBranding((prev: any) => ({ ...prev, social: { ...(prev.social || {}), [platform]: value } })); };
   const updateTheme = (key: string, value: string) => { setTheme((prev: any) => ({ ...prev, [key]: value })); };
+  const updateServicesConfig = (serviceKey: string, field: string, value: any) => { setBranding((prev: any) => ({ ...prev, servicesConfig: { ...(prev.servicesConfig || {}), [serviceKey]: { ...(prev.servicesConfig?.[serviceKey] || {}), [field]: value } } })); };
+  const addFaqItem = () => { setBranding((prev: any) => ({ ...prev, servicesConfig: { ...(prev.servicesConfig || {}), faq: [...(prev.servicesConfig?.faq || []), { q: '', a: '' }] } })); };
+  const updateFaqItem = (index: number, field: 'q' | 'a', value: string) => { setBranding((prev: any) => { const faq = [...(prev.servicesConfig?.faq || [])]; faq[index] = { ...faq[index], [field]: value }; return { ...prev, servicesConfig: { ...(prev.servicesConfig || {}), faq } }; }); };
+  const removeFaqItem = (index: number) => { setBranding((prev: any) => { const faq = (prev.servicesConfig?.faq || []).filter((_: any, i: number) => i !== index); return { ...prev, servicesConfig: { ...(prev.servicesConfig || {}), faq } }; }); };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setUploadingLogo(true); try { const blob = await upload(`branding/logo-${Date.now()}.${file.name.split('.').pop()}`, file, { access: 'public', handleUploadUrl: '/api/upload' }); updateBranding('logo', blob.url); } catch { alert('Erreur'); } setUploadingLogo(false); };
-  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setUploadingFavicon(true); try { const blob = await upload(`branding/favicon-${Date.now()}.${file.name.split('.').pop()}`, file, { access: 'public', handleUploadUrl: '/api/upload' }); updateBranding('favicon', blob.url); } catch { alert('Erreur'); } setUploadingFavicon(false); };
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setUploadingLogo(true); try { const blob = await upload(`branding/logo-${Date.now()}.webp`, file, { access: 'public', handleUploadUrl: '/api/upload' }); updateBranding('logo', blob.url); } catch { alert('Erreur'); } setUploadingLogo(false); };
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setUploadingFavicon(true); try { const blob = await upload(`branding/favicon-${Date.now()}.ico`, file, { access: 'public', handleUploadUrl: '/api/upload' }); updateBranding('favicon', blob.url); } catch { alert('Erreur'); } setUploadingFavicon(false); };
+
+  const handleHeroBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) { alert('Image trop lourde (max 500 KB).'); return; }
+    setUploadingHeroBg(true);
+    try {
+      const resized = await resizeImage(file, 1200, 600);
+      const blob = await upload(`branding/hero-bg-${Date.now()}.webp`, resized, { access: 'public', handleUploadUrl: '/api/upload' });
+      updateBranding('heroBg', blob.url);
+    } catch { alert('Erreur upload'); }
+    setUploadingHeroBg(false);
+  };
 
   if (loading) return <div className="text-center py-20 text-gray-400">Chargement...</div>;
 
@@ -65,35 +104,56 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
+      {/* BRANDING */}
       <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Image className="w-4 h-4 text-[#ff6b35]" /> Branding</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div><label className="block text-xs text-gray-400 mb-1">Nom du site</label><input type="text" value={branding?.siteName || ''} onChange={(e) => updateBranding('siteName', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
           <div><label className="block text-xs text-gray-400 mb-1">Description SEO</label><input type="text" value={branding?.description || ''} onChange={(e) => updateBranding('description', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div><label className="block text-xs text-gray-400 mb-1">Logo</label><div className="flex items-center gap-3"><input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" /><button onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo} className="px-4 py-2 bg-[#201d1a] border border-[#332e2a] rounded-xl text-xs text-white hover:border-[#ff6b35] disabled:opacity-50 flex items-center gap-2"><Upload className="w-3 h-3" /> {uploadingLogo ? 'Upload...' : 'Uploader'}</button>{branding?.logo && <img src={branding.logo} alt="Logo" className="h-8 w-auto object-contain" />}</div></div>
           <div><label className="block text-xs text-gray-400 mb-1">Favicon</label><div className="flex items-center gap-3"><input ref={faviconInputRef} type="file" accept="image/*" onChange={handleFaviconUpload} className="hidden" /><button onClick={() => faviconInputRef.current?.click()} disabled={uploadingFavicon} className="px-4 py-2 bg-[#201d1a] border border-[#332e2a] rounded-xl text-xs text-white hover:border-[#ff6b35] disabled:opacity-50 flex items-center gap-2"><Upload className="w-3 h-3" /> {uploadingFavicon ? 'Upload...' : 'Uploader'}</button>{branding?.favicon && <img src={branding.favicon} alt="Favicon" className="h-6 w-6 object-contain" />}</div></div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Hero Background (1200x600)</label>
+            <div className="flex items-center gap-3">
+              <input ref={heroBgInputRef} type="file" accept="image/*" onChange={handleHeroBgUpload} className="hidden" />
+              <button onClick={() => heroBgInputRef.current?.click()} disabled={uploadingHeroBg} className="px-4 py-2 bg-[#201d1a] border border-[#332e2a] rounded-xl text-xs text-white hover:border-[#ff6b35] disabled:opacity-50 flex items-center gap-2"><Upload className="w-3 h-3" /> {uploadingHeroBg ? 'Upload...' : 'Uploader'}</button>
+              {branding?.heroBg && <img src={branding.heroBg} alt="Hero" className="h-8 w-auto object-contain" />}
+            </div>
+            <p className="text-[10px] text-gray-500 mt-1">1200x600px, WebP, max 500 KB.</p>
+          </div>
         </div>
         <div><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={branding?.showFooterLogo !== false} onChange={(e) => updateBranding('showFooterLogo', e.target.checked)} className="w-4 h-4 rounded accent-[#ff6b35]" /><span className="text-xs text-gray-300">Afficher le logo dans le footer</span></label></div>
       </div>
 
+      {/* FOOTER */}
       <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Type className="w-4 h-4 text-[#ff6b35]" /> Footer & Contact</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div><label className="block text-xs text-gray-400 mb-1">Description sous le logo</label><textarea value={branding?.footerText || ''} onChange={(e) => updateBranding('footerText', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35] h-20" /></div>
-          <div><label className="block text-xs text-gray-400 mb-1">Copyright (tout en bas)</label><input type="text" value={branding?.copyright || ''} onChange={(e) => updateBranding('copyright', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
-          <div><label className="block text-xs text-gray-400 mb-1">WhatsApp (paiement)</label><input type="text" value={branding?.whatsapp || ''} onChange={(e) => updateBranding('whatsapp', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
-          <div><label className="block text-xs text-gray-400 mb-1">Email de contact</label><input type="text" value={branding?.email || ''} onChange={(e) => updateBranding('email', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
+          <div><label className="block text-xs text-gray-400 mb-1">Copyright</label><input type="text" value={branding?.copyright || ''} onChange={(e) => updateBranding('copyright', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
+          <div><label className="block text-xs text-gray-400 mb-1">WhatsApp</label><input type="text" value={branding?.whatsapp || ''} onChange={(e) => updateBranding('whatsapp', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
+          <div><label className="block text-xs text-gray-400 mb-1">Email</label><input type="text" value={branding?.email || ''} onChange={(e) => updateBranding('email', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
         </div>
-        <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-2">Réseaux sociaux (URLs complètes)</p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {['instagram', 'youtube', 'tiktok', 'spotify', 'discord', 'telegram', 'twitter'].map(platform => (
-            <div key={platform}><label className="block text-[10px] text-gray-400 mb-1 capitalize">{platform}</label><input type="text" value={branding?.social?.[platform] || ''} onChange={(e) => updateSocial(platform, e.target.value)} placeholder={`https://${platform}.com/heaviexo`} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-3 py-2 text-white text-[10px] focus:outline-none focus:border-[#ff6b35] placeholder:text-gray-600" /></div>
-          ))}
+        
+        {/* Réseaux sociaux avec œil */}
+        <div>
+          <button onClick={() => setShowSocials(!showSocials)} className="text-xs text-[#ff6b35] hover:text-[#FF8C5A] flex items-center gap-1">
+            {showSocials ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            {showSocials ? 'Masquer' : 'Afficher'} les réseaux sociaux
+          </button>
         </div>
+        {showSocials && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {['instagram', 'youtube', 'tiktok', 'spotify', 'discord', 'telegram', 'twitter'].map(platform => (
+              <div key={platform}><label className="block text-[10px] text-gray-400 mb-1 capitalize">{platform}</label><input type="text" value={branding?.social?.[platform] || ''} onChange={(e) => updateSocial(platform, e.target.value)} placeholder={`https://${platform}.com/heaviexo`} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-3 py-2 text-white text-[10px] focus:outline-none focus:border-[#ff6b35] placeholder:text-gray-600" /></div>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* THÈMES */}
       <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Palette className="w-4 h-4 text-[#ff6b35]" /> Thème</h3>
         <div className="flex flex-wrap gap-2">
@@ -115,13 +175,51 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
+      {/* HERO */}
       <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-4">
-        <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Star className="w-4 h-4 text-[#ff6b35]" /> Page d'accueil (Hero Banner)</h3>
+        <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Star className="w-4 h-4 text-[#ff6b35]" /> Hero Banner</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div><label className="block text-xs text-gray-400 mb-1">Badge</label><input type="text" value={branding?.heroBadge || ''} onChange={(e) => updateBranding('heroBadge', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
           <div><label className="block text-xs text-gray-400 mb-1">Titre</label><input type="text" value={branding?.heroTitle || ''} onChange={(e) => updateBranding('heroTitle', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
           <div><label className="block text-xs text-gray-400 mb-1">Sous-titre</label><input type="text" value={branding?.heroSubtitle || ''} onChange={(e) => updateBranding('heroSubtitle', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
-          <div><label className="block text-xs text-gray-400 mb-1">URL Playlist Spotify</label><input type="text" value={branding?.spotifyPlaylist || ''} onChange={(e) => updateBranding('spotifyPlaylist', e.target.value)} placeholder="https://open.spotify.com/playlist/..." className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
+          <div><label className="block text-xs text-gray-400 mb-1">URL Spotify</label><input type="text" value={branding?.spotifyPlaylist || ''} onChange={(e) => updateBranding('spotifyPlaylist', e.target.value)} placeholder="https://open.spotify.com/playlist/..." className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
+        </div>
+      </div>
+
+      {/* SERVICES */}
+      <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-6">
+        <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Wrench className="w-4 h-4 text-[#ff6b35]" /> Services</h3>
+        {['ep', 'album', 'custom', 'mixmaster'].map((key) => (
+          <div key={key} className="bg-[#201d1a] rounded-xl p-4 space-y-3">
+            <span className="text-[10px] font-bold text-[#ff6b35] uppercase">{key === 'mixmaster' ? 'Mix & Master' : key.toUpperCase()}</span>
+            <div className="grid grid-cols-3 gap-2">
+              <input type="text" value={branding?.servicesConfig?.[key]?.title || ''} onChange={(e) => updateServicesConfig(key, 'title', e.target.value)} placeholder="Titre" className="bg-black/50 border border-[#332e2a] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#ff6b35]" />
+              <input type="text" value={branding?.servicesConfig?.[key]?.subtitle || ''} onChange={(e) => updateServicesConfig(key, 'subtitle', e.target.value)} placeholder="Sous-titre" className="bg-black/50 border border-[#332e2a] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#ff6b35]" />
+              <input type="text" value={branding?.servicesConfig?.[key]?.price || ''} onChange={(e) => updateServicesConfig(key, 'price', e.target.value)} placeholder="Prix" className="bg-black/50 border border-[#332e2a] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#ff6b35]" />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-1 block">Features</label>
+              {(branding?.servicesConfig?.[key]?.features || ['']).map((feat: string, i: number) => (
+                <div key={i} className="flex gap-2 mb-1">
+                  <input type="text" value={feat} onChange={(e) => { const feats = [...(branding?.servicesConfig?.[key]?.features || [''])]; feats[i] = e.target.value; updateServicesConfig(key, 'features', feats); }} placeholder={`Feature ${i + 1}`} className="flex-1 bg-black/50 border border-[#332e2a] rounded-lg px-3 py-1.5 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
+                  {i > 0 && (<button onClick={() => { const feats = (branding?.servicesConfig?.[key]?.features || ['']).filter((_: any, idx: number) => idx !== i); updateServicesConfig(key, 'features', feats.length === 0 ? [''] : feats); }} className="text-red-400 hover:text-red-300 p-1"><Trash2 className="w-3 h-3" /></button>)}
+                </div>
+              ))}
+              <button onClick={() => { const feats = [...(branding?.servicesConfig?.[key]?.features || ['']), '']; updateServicesConfig(key, 'features', feats); }} className="text-[10px] text-[#ff6b35] hover:text-[#FF8C5A] flex items-center gap-1 mt-1"><Plus className="w-3 h-3" /> Ajouter</button>
+            </div>
+          </div>
+        ))}
+        <div className="bg-[#201d1a] rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-[#ff6b35] uppercase">FAQ</span><button onClick={addFaqItem} className="text-[10px] text-[#ff6b35] hover:text-[#FF8C5A] flex items-center gap-1"><Plus className="w-3 h-3" /> Ajouter</button></div>
+          {(branding?.servicesConfig?.faq || []).map((item: any, i: number) => (
+            <div key={i} className="flex gap-2 items-start">
+              <div className="flex-1 space-y-1">
+                <input type="text" value={item.q || ''} onChange={(e) => updateFaqItem(i, 'q', e.target.value)} placeholder="Question" className="w-full bg-black/50 border border-[#332e2a] rounded-lg px-3 py-1.5 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
+                <textarea value={item.a || ''} onChange={(e) => updateFaqItem(i, 'a', e.target.value)} placeholder="Réponse" rows={2} className="w-full bg-black/50 border border-[#332e2a] rounded-lg px-3 py-1.5 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
+              </div>
+              <button onClick={() => removeFaqItem(i)} className="text-red-400 hover:text-red-300 p-1 mt-1"><Trash2 className="w-3 h-3" /></button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
