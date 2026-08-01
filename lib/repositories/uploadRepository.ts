@@ -4,25 +4,25 @@ import { eq } from 'drizzle-orm';
 
 export const uploadRepository = {
   async updateBeatFiles(
-    id: string, 
-    filesData: { cover?: string; previewMp3?: string; masterWav?: string; stemsZip?: string }
+    id: string,
+    filesData: { cover_url?: string; preview_url?: string; master_url?: string; stems_url?: string }
   ): Promise<void> {
     try {
       const updateValues: Record<string, any> = {
         updatedAt: new Date(),
       };
 
-      if (filesData.cover !== undefined) {
-        updateValues.coverUrl = filesData.cover;
+      if (filesData.cover_url !== undefined) {
+        updateValues.coverUrl = filesData.cover_url;
       }
-      if (filesData.previewMp3 !== undefined) {
-        updateValues.previewUrl = filesData.previewMp3;
+      if (filesData.preview_url !== undefined) {
+        updateValues.previewUrl = filesData.preview_url;
       }
-      if (filesData.masterWav !== undefined) {
-        updateValues.masterUrl = filesData.masterWav;
+      if (filesData.master_url !== undefined) {
+        updateValues.masterUrl = filesData.master_url;
       }
-      if (filesData.stemsZip !== undefined) {
-        updateValues.stemsUrl = filesData.stemsZip;
+      if (filesData.stems_url !== undefined) {
+        updateValues.stemsUrl = filesData.stems_url;
       }
 
       if (Object.keys(updateValues).length <= 1) return;
@@ -32,8 +32,8 @@ export const uploadRepository = {
         .set(updateValues)
         .where(eq(beats.id, id));
     } catch (error) {
-      console.error(`Erreur UploadRepository lors de la mise à jour des fichiers du beat ${id}:`, error);
-      throw new Error(`Échec de la mise en base de données des fichiers pour le beat ${id}.`);
+      console.error(`Erreur UploadRepository:`, error);
+      throw new Error(`Échec mise à jour fichiers beat ${id}.`);
     }
   }
 };
