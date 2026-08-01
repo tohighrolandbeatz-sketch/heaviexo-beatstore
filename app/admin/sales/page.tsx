@@ -25,7 +25,7 @@ export default function AdminSalesPage() {
     }
   }, []);
 
-  const updateField = (key: string, field: string, value: string) => {
+  const updateField = (key: keyof typeof paypalLinks, field: string, value: string) => {
     setPaypalLinks(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
   };
 
