@@ -165,7 +165,7 @@ export default function BeatstorePage() {
       {!detailedBeat && heroBeat && (
         <section className="relative w-full mb-12 md:mb-20 overflow-hidden bg-black">
           <div className="relative w-full max-h-[60vh] overflow-hidden">
-            <img loading="eager" width="600" height="600" src={heroBeat.cover} alt={heroBeat.title} className="w-full h-full object-contain bg-black" />
+            <img fetchpriority="high" loading="eager" width="1200" height="1200" src={heroBeat.cover} alt={heroBeat.title} className="w-full h-full object-contain bg-black" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
             <div className="absolute inset-0 flex flex-col items-center justify-end p-6 md:p-10 text-center">
               <span className="inline-block px-3 py-1 mb-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest rounded-full bg-[#C66B3D]/20 text-[#C66B3D] border border-[#C66B3D]/30 backdrop-blur-sm">
@@ -214,7 +214,7 @@ export default function BeatstorePage() {
                 return (
                   <div key={beat.id} className={`group flex items-center gap-3 px-4 py-3 cursor-pointer transition-all ${isThisSelected ? 'bg-[#C66B3D]/15 border-l-4 border-l-[#C66B3D]' : 'hover:bg-white/[0.03]'}`}>
                     <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-black hover:scale-105 transition-transform shadow-md" onClick={(e) => { e.stopPropagation(); togglePlay(beat); }}>
-                      <img loading="lazy" width="300" height="300" src={beat.cover} alt={beat.title} className="w-full h-full object-cover" />
+                      <img loading="lazy" width="300" height="300" sizes="(max-width: 768px) 48px, 300px" src={beat.cover} alt={beat.title} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         {isThisPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white ml-0.5" />}
                       </div>
