@@ -85,7 +85,7 @@ export function LicenseModal({ beat, licenses, selectedLicenseId, onSelectLicens
                         <span className="text-sm font-black text-[#C66B3D]">${Number(lic.price || 0).toFixed(2)}</span>
                       )}
                     </div>
-                    {selectedLicenseId === lic.id && features.length > 0 && (
+                    {(selectedLicenseId === lic.id || licenses.length === 1) && features.length > 0 && (
                       <div className="mt-3 space-y-1.5">
                         {features.map((f: string, i: number) => (
                           <div key={i} className="flex items-start gap-2 text-[11px] text-[#C2B9B0]">
