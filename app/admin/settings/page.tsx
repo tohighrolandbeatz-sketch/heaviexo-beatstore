@@ -84,6 +84,19 @@ export default function AdminSettingsPage() {
     setUploadingHeroBg(true);
     setHeroBgMsg('');
     try {
+      // Supprime l'ancienne image du Blob storage avant d'uploader la nouvelle
+      if (branding?.heroBg) {
+        try {
+          await fetch('/api/blob/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: branding.heroBg }),
+          });
+        } catch {
+          // Si la suppression échoue, on continue quand même l'upload de la nouvelle image
+        }
+      }
+
       // Pas de redimensionnement pour le Hero — qualité originale préservée
       const blob = await upload(`branding/hero-bg-${Date.now()}.${file.name.split('.').pop() || 'webp'}`, file, { access: 'public', handleUploadUrl: '/api/upload' });
       updateBranding('heroBg', blob.url);
@@ -92,7 +105,18 @@ export default function AdminSettingsPage() {
     setUploadingHeroBg(false);
   };
 
-  const handleRemoveHeroBg = () => {
+  const handleRemoveHeroBg = async () => {
+    if (branding?.heroBg) {
+      try {
+        await fetch('/api/blob/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: branding.heroBg }),
+        });
+      } catch {
+        // Si la suppression échoue côté Blob, on vide quand même la référence en base
+      }
+    }
     updateBranding('heroBg', '');
     setHeroBgMsg('🗑️ Image supprimée. Sauvegardez pour confirmer.');
   };

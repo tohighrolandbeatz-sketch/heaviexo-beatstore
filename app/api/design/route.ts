@@ -13,7 +13,6 @@ const CACHE_TTL = 30000; // 30 secondes
 export async function GET() {
   const now = Date.now();
 
-  // Retourner le cache s'il est frais
   if (cachedPayload && (now - lastFetch) < CACHE_TTL) {
     return NextResponse.json(cachedPayload, {
       headers: { 'Cache-Control': 'public, max-age=30, s-maxage=30', 'X-Cache': 'HIT' },
@@ -55,7 +54,6 @@ export async function GET() {
       headers: { 'Cache-Control': 'public, max-age=30, s-maxage=30', 'X-Cache': 'MISS' },
     });
   } catch (error) {
-    // Si timeout, renvoyer le vieux cache s'il existe
     if (cachedPayload) {
       return NextResponse.json(cachedPayload, {
         headers: { 'Cache-Control': 'public, max-age=10', 'X-Cache': 'STALE' },
@@ -83,7 +81,6 @@ export async function POST(request: Request) {
         show_footer_logo = EXCLUDED.show_footer_logo, social_links = EXCLUDED.social_links, theme_config = EXCLUDED.theme_config, updated_at = NOW()
     `);
 
-    // Invalider le cache après sauvegarde
     cachedPayload = null;
     lastFetch = 0;
 
