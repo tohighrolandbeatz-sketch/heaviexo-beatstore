@@ -1,13 +1,18 @@
-import { Music, ShoppingCart, DollarSign, TrendingUp, Users, Headphones } from 'lucide-react';
+import { Music, ShoppingCart, DollarSign, Users } from 'lucide-react';
 import { db } from '@/lib/db';
 import { beats, sales, users } from '@/app/config/schema';
 import { count, sum } from 'drizzle-orm';
 
 export default async function AdminDashboardPage() {
-  const beatCountResult = await db.select({ count: count() }).from(beats);
-  const saleCountResult = await db.select({ count: count() }).from(sales);
-  let userCountResult = [{ count: 0 }]; try { userCountResult = await db.select({ count: count() }).from(users); } catch (e) {}
-  const totalRevenueResult = await db.select({ total: sum(sales.amount) }).from(sales);
+  let beatCountResult = [{ count: 0 }];
+  let saleCountResult = [{ count: 0 }];
+  let userCountResult = [{ count: 0 }];
+  let totalRevenueResult = [{ total: 0 }];
+
+  try { beatCountResult = await db.select({ count: count() }).from(beats); } catch (e) {}
+  try { saleCountResult = await db.select({ count: count() }).from(sales); } catch (e) {}
+  try { userCountResult = await db.select({ count: count() }).from(users); } catch (e) {}
+  try { totalRevenueResult = await db.select({ total: sum(sales.amount) }).from(sales); } catch (e) {}
 
   const beatCount = beatCountResult[0]?.count || 0;
   const saleCount = saleCountResult[0]?.count || 0;
