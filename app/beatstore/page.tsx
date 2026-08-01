@@ -162,33 +162,25 @@ export default function BeatstorePage() {
       <Header viewMode="store" setViewMode={() => {}} lang={lang} setLang={setLang} cartItemsCount={cartItems.length} onCartOpen={() => setCartOpen(true)} onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} mobileMenuOpen={mobileMenuOpen} t={t} />
       <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} setViewMode={() => {}} t={t} />
 
-      {!detailedBeat && heroBeat && (
-        <section className="relative w-full mb-12 md:mb-20 overflow-hidden bg-black">
-          <div className="relative w-full max-h-[60vh] overflow-hidden">
-            <img fetchPriority="high" loading="eager" width="1200" height="1200" src={designBranding?.heroBg || heroBeat.cover} alt={heroBeat.title} className="w-full h-full object-contain bg-black" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-            <div className="absolute inset-0 flex flex-col items-center justify-end p-6 md:p-10 text-center">
-              <span className="inline-block px-3 py-1 mb-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest rounded-full bg-[#C66B3D]/20 text-[#C66B3D] border border-[#C66B3D]/30 backdrop-blur-sm">
-                {designBranding?.heroBadge || t.heroBadge}
-              </span>
-              <h1 className="text-3xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter mb-4 leading-[0.9] drop-shadow-lg">
-                {designBranding?.heroTitle || heroBeat.title}
-              </h1>
-              <p className="text-sm md:text-lg text-[#C2B9B0] mb-6 font-light max-w-xl">
-                {designBranding?.heroSubtitle || t.heroSub}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 mb-6">
-                <button onClick={() => togglePlay(heroBeat)} className="flex items-center justify-center gap-3 bg-white text-black px-8 py-3.5 rounded-full font-extrabold text-sm md:text-lg hover:scale-105 transition-transform">
-                  {isPlaying && currentBeat?.id === heroBeat.id ? <Pause className="w-5 h-5 fill-black" /> : <Play className="w-5 h-5 fill-black" />}
-                  {isPlaying && currentBeat?.id === heroBeat.id ? "PAUSE" : "PLAY NOW"}
-                </button>
-                <button onClick={(e) => handleBeatLicense(heroBeat, e)} className="bg-black/50 backdrop-blur-md border border-white/10 text-white px-8 py-3.5 rounded-full font-bold text-sm md:text-lg hover:bg-white/10">LICENCE</button>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
+{!detailedBeat && designBranding?.heroBg && (
+  <section className="relative w-full mb-12 md:mb-20 overflow-hidden bg-black">
+    <div className="relative w-full max-h-[60vh] overflow-hidden">
+      <img fetchPriority="high" loading="eager" width="1200" height="600" src={designBranding.heroBg} alt="Hero Banner" className="w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+      <div className="absolute inset-0 flex flex-col items-center justify-end p-6 md:p-10 text-center">
+        <span className="inline-block px-3 py-1 mb-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest rounded-full border backdrop-blur-sm" style={{ backgroundColor: 'color-mix(in srgb, #C66B3D 20%, transparent)', color: '#C66B3D', borderColor: 'color-mix(in srgb, #C66B3D 30%, transparent)' }}>
+          {designBranding?.heroBadge || t.heroBadge}
+        </span>
+        <h1 className="text-3xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter mb-4 leading-[0.9] drop-shadow-lg">
+          {designBranding?.heroTitle || 'HeavieXo Beats'}
+        </h1>
+        <p className="text-sm md:text-lg mb-6 font-light max-w-xl" style={{ color: 'var(--color-muted)' }}>
+          {designBranding?.heroSubtitle || t.heroSub}
+        </p>
+      </div>
+    </div>
+  </section>
+)}
       <ArtistMarquee />
       <main className="px-4 md:px-10 pt-6 max-w-7xl mx-auto">
         {detailedBeat ? (
