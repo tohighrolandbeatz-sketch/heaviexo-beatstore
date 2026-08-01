@@ -165,7 +165,7 @@ export default function BeatstorePage() {
       {!detailedBeat && heroBeat && (
         <section className="relative w-full mb-12 md:mb-20 overflow-hidden bg-black">
           <div className="relative w-full max-h-[60vh] overflow-hidden">
-            <img fetchPriority="high" loading="eager" width="1200" height="1200" src={heroBeat.cover} alt={heroBeat.title} className="w-full h-full object-contain bg-black" />
+            <img fetchPriority="high" loading="eager" width="1200" height="1200" src={designBranding?.heroBg || heroBeat.cover} alt={heroBeat.title} className="w-full h-full object-contain bg-black" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
             <div className="absolute inset-0 flex flex-col items-center justify-end p-6 md:p-10 text-center">
               <span className="inline-block px-3 py-1 mb-4 text-[10px] md:text-[11px] font-bold uppercase tracking-widest rounded-full bg-[#C66B3D]/20 text-[#C66B3D] border border-[#C66B3D]/30 backdrop-blur-sm">
