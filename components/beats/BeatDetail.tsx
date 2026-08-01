@@ -27,7 +27,7 @@ export function BeatDetail({ beat, onBack, onGetLicense, t }: BeatDetailProps) {
 
   const handleAddComment = async () => {
     if (!comment.trim() || !pseudo.trim()) return;
-    const res = await fetch('/api/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ beat_id: beat.id, user_id: pseudo.trim(), content: comment }) });
+    const res = await fetch('/api/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ beat_id: beat.id, user_id: pseudo.trim(), content: comment, rating: userRating }) });
     if (res.ok) { const newComment = await res.json(); setComments([newComment, ...comments]); setComment(""); }
   };
 

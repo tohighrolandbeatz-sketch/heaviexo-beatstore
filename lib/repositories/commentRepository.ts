@@ -7,6 +7,7 @@ export interface Comment {
   user_id: string;
   beat_id: string;
   content: string;
+  rating: number;
   created_at: string;
   updated_at: string;
 }
@@ -19,6 +20,7 @@ export const commentRepository = {
       user_id: row.userId,
       beat_id: row.beatId,
       content: row.content,
+      rating: row.rating || 0,
       created_at: row.createdAt.toISOString(),
       updated_at: row.updatedAt.toISOString(),
     }));
@@ -37,6 +39,7 @@ export const commentRepository = {
       userId: comment.user_id,
       beatId: comment.beat_id,
       content: comment.content,
+      rating: comment.rating || 0,
       createdAt: now,
       updatedAt: now,
     });

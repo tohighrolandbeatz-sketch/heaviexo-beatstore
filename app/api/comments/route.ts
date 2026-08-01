@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { commentRepository } from '@/lib/repositories/commentRepository';
 
-// Stockage temporaire (en mémoire, se vide au redémarrage)
 const ipTracker = new Map<string, Map<string, number>>();
 
 export async function GET(request: NextRequest) {
@@ -13,24 +12,21 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { beat_id, user_id, content } = body;
-  
-  if (!beat_id || !content) return NextResponse.json({ error: 'Champs requis' }, { status: 400 });
-  if (content.length < 3) return NextResponse.json({ error: 'Commentaire trop court (min 3 caractères)' }, { status: 400 });
-  if (content.length > 500) return NextResponse.json({ error: 'Commentaire trop long (max 500 caractères)' }, { status: 400 });
+  const { beat_id, user_id, content, rating } = body;
 
-  // Récupérer l'IP
+  if (!beat_id || !content) return NextResponse.json({ error: 'Champs requis' }, { status: 400 });
+  if (content.length < 3) return NextResponse.json({ error: 'Commentaire trop court' }, { status: 400 });
+  if (content.length > 500) return NextResponse.json({ error: 'Commentaire trop long' }, { status: 400 });
+
   const forwarded = request.headers.get('x-forwarded-for');
   const ip = forwarded?.split(',')[0]?.trim() || 'unknown';
-
-  // Vérifier le délai
   const now = Date.now();
   const beatTracker = ipTracker.get(beat_id) || new Map();
   const lastPost = beatTracker.get(ip);
-  
-  if (lastPost && now - lastPost < 300000) { // 5 minutes
+
+  if (lastPost && now - lastPost < 300000) {
     const minutesLeft = Math.ceil((300000 - (now - lastPost)) / 60000);
-    return NextResponse.json({ error: `Veuillez attendre ${minutesLeft} minute(s) avant de reposter.` }, { status: 429 });
+    return NextResponse.json({ error: `Veuillez attendre ${minutesLeft} minute(s).` }, { status: 429 });
   }
 
   beatTracker.set(ip, now);
@@ -41,7 +37,8 @@ export async function POST(request: Request) {
     user_id: (user_id || 'anonymous').substring(0, 30),
     beat_id,
     content: content.substring(0, 500),
+    rating: rating || 0,
   });
-  
+
   return NextResponse.json(comment, { status: 201 });
 }

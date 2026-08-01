@@ -74,7 +74,7 @@ export default function AdminBeatsPage() {
   const moodDropdownRef = useRef<HTMLDivElement>(null);
 
   // Featured system
-  const [featuredMode, setFeaturedMode] = useState<'auto' | 'manual'>('auto');
+  const [featuredMode, setFeaturedMode] = useState<'auto' | 'manual' | 'off'>('auto');
   const [featuredBeatId, setFeaturedBeatId] = useState<string>('');
 
   useEffect(() => { fetchBeats(); }, []);
@@ -279,6 +279,10 @@ export default function AdminBeatsPage() {
             <input type="radio" checked={featuredMode === 'manual'} onChange={() => setFeaturedMode('manual')} className="accent-[#ff6b35]" />
             <span className="text-xs text-gray-300">Manuel (choisir le beat)</span>
           </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="radio" checked={featuredMode === 'off'} onChange={() => setFeaturedMode('off')} className="accent-[#ff6b35]" />
+              <span className="text-xs text-gray-300">Off (pas de bannière)</span>
+            </label>
           {featuredMode === 'manual' && (
             <select value={featuredBeatId} onChange={(e) => setFeaturedBeatId(e.target.value)}
               className="bg-[#201d1a] border border-[#332e2a] rounded-lg px-3 py-1.5 text-xs text-white">

@@ -90,6 +90,7 @@ export const comments = pgTable('comments', {
   userId: text('user_id').notNull(),
   beatId: text('beat_id').notNull(),
   content: text('content').notNull(),
+  rating: integer('rating').default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
