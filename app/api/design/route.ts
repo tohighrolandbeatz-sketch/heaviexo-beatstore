@@ -3,15 +3,32 @@ import { db } from '@/lib/db';
 import { sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+const TIMEOUT = 8000;
+
+// Cache en mémoire (valable jusqu'au redéploiement)
+let cachedPayload: any = null;
+let lastFetch = 0;
+const CACHE_TTL = 30000; // 30 secondes
 
 export async function GET() {
-  try {
-    const result = await db.execute(sql`SELECT * FROM design_config LIMIT 1`);
-    const row = result.rows?.[0];
+  const now = Date.now();
+  
+  // Retourner le cache s'il est frais
+  if (cachedPayload && (now - lastFetch) < CACHE_TTL) {
+    return NextResponse.json(cachedPayload, {
+      headers: { 'Cache-Control': 'public, max-age=30, s-maxage=30', 'X-Cache': 'HIT' },
+    });
+  }
 
-    const payload = {
+  try {
+    const result = await Promise.race([
+      db.execute(sql`SELECT * FROM design_config LIMIT 1`),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT)),
+    ]) as any;
+
+    const row = result?.rows?.[0];
+
+    cachedPayload = {
       branding: row ? {
         siteName: row.site_name,
         description: row.description,
@@ -31,12 +48,19 @@ export async function GET() {
         theme: row.theme_config ? JSON.parse(row.theme_config as string) : null,
       } : {}
     };
+    lastFetch = now;
 
-    return NextResponse.json(payload, {
-      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate', 'Pragma': 'no-cache', 'Expires': '0' },
+    return NextResponse.json(cachedPayload, {
+      headers: { 'Cache-Control': 'public, max-age=30, s-maxage=30', 'X-Cache': 'MISS' },
     });
   } catch (error) {
-    return NextResponse.json({ branding: {} }, { status: 500 });
+    // Si timeout, renvoyer le vieux cache s'il existe
+    if (cachedPayload) {
+      return NextResponse.json(cachedPayload, {
+        headers: { 'Cache-Control': 'public, max-age=10', 'X-Cache': 'STALE' },
+      });
+    }
+    return NextResponse.json({ branding: {} }, { status: 200 });
   }
 }
 
@@ -57,6 +81,10 @@ export async function POST(request: Request) {
         spotify_playlist = EXCLUDED.spotify_playlist, services_config = EXCLUDED.services_config,
         show_footer_logo = EXCLUDED.show_footer_logo, social_links = EXCLUDED.social_links, theme_config = EXCLUDED.theme_config, updated_at = NOW()
     `);
+
+    // Invalider le cache après sauvegarde
+    cachedPayload = null;
+    lastFetch = 0;
 
     return NextResponse.json({ success: true }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
