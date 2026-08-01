@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "HEAVIEXO BEATS - Pro Beatstore",
   description: "High-definition music production studio & beatstore. Dark Trap, Melodic Drill, Boom Bap beats.",
-  icons: { icon: "/favicon.ico", shortcut: "/favicon.ico", apple: "/favicon.ico" },
+  manifest: "/manifest.json", icons: { icon: "/favicon.ico", shortcut: "/favicon.ico", apple: "/favicon.ico" },
   openGraph: {
     title: "HEAVIEXO BEATS - Pro Beatstore",
     description: "High-definition music production studio & beatstore.",
