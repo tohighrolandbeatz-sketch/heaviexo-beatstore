@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Check, Palette, Image, Type, Star, Upload, Wrench, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Check, Palette, Image, Type, Star, Upload, Wrench, Plus, Trash2, Eye, EyeOff, X } from 'lucide-react';
 import { upload } from '@vercel/blob/client';
 import { THEME_PRESETS, DEFAULT_THEME, type ThemePresetId } from '@/constants/themes';
 
@@ -20,7 +20,7 @@ function resizeImage(file: File, maxWidth: number, maxHeight: number): Promise<F
       canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
       canvas.toBlob((blob) => {
         resolve(new File([blob!], file.name, { type: 'image/webp' }));
-      }, 'image/webp', 0.8);
+      }, 'image/webp', 0.95);
     };
     img.src = URL.createObjectURL(file);
   });
@@ -37,6 +37,7 @@ export default function AdminSettingsPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [uploadingHeroBg, setUploadingHeroBg] = useState(false);
+  const [heroBgMsg, setHeroBgMsg] = useState('');
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
   const heroBgInputRef = useRef<HTMLInputElement>(null);
@@ -76,20 +77,26 @@ export default function AdminSettingsPage() {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setUploadingLogo(true); try { const blob = await upload(`branding/logo-${Date.now()}.webp`, file, { access: 'public', handleUploadUrl: '/api/upload' }); updateBranding('logo', blob.url); } catch { alert('Erreur'); } setUploadingLogo(false); };
   const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setUploadingFavicon(true); try { const blob = await upload(`branding/favicon-${Date.now()}.ico`, file, { access: 'public', handleUploadUrl: '/api/upload' }); updateBranding('favicon', blob.url); } catch { alert('Erreur'); } setUploadingFavicon(false); };
 
-const handleHeroBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeroBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 500 * 1024) { alert('❌ Image trop lourde (max 500 KB). Redimensionnez-la.'); return; }
+    if (file.size > 1024 * 1024) { alert('❌ Image trop lourde (max 1 MB).'); return; }
     setUploadingHeroBg(true);
+    setHeroBgMsg('');
     try {
-      const resized = await resizeImage(file, 1200, 600);
-      const blob = await upload(`branding/hero-bg-${Date.now()}.webp`, resized, { access: 'public', handleUploadUrl: '/api/upload' });
+      // Pas de redimensionnement pour le Hero — qualité originale préservée
+      const blob = await upload(`branding/hero-bg-${Date.now()}.${file.name.split('.').pop() || 'webp'}`, file, { access: 'public', handleUploadUrl: '/api/upload' });
       updateBranding('heroBg', blob.url);
-      alert('✅ Hero Background uploadé avec succès ! Sauvegardez pour appliquer.');
-    } catch { alert('❌ Erreur upload'); }
+      setHeroBgMsg('✅ Uploadé ! Cliquez "Sauvegarder tout" pour appliquer.');
+    } catch { setHeroBgMsg('❌ Erreur upload'); }
     setUploadingHeroBg(false);
   };
-  
+
+  const handleRemoveHeroBg = () => {
+    updateBranding('heroBg', '');
+    setHeroBgMsg('🗑️ Image supprimée. Sauvegardez pour confirmer.');
+  };
+
   if (loading) return <div className="text-center py-20 text-gray-400">Chargement...</div>;
 
   return (
@@ -113,13 +120,19 @@ const handleHeroBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
           <div><label className="block text-xs text-gray-400 mb-1">Logo</label><div className="flex items-center gap-3"><input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" /><button onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo} className="px-4 py-2 bg-[#201d1a] border border-[#332e2a] rounded-xl text-xs text-white hover:border-[#ff6b35] disabled:opacity-50 flex items-center gap-2"><Upload className="w-3 h-3" /> {uploadingLogo ? 'Upload...' : 'Uploader'}</button>{branding?.logo && <img src={branding.logo} alt="Logo" className="h-8 w-auto object-contain" />}</div></div>
           <div><label className="block text-xs text-gray-400 mb-1">Favicon</label><div className="flex items-center gap-3"><input ref={faviconInputRef} type="file" accept="image/*" onChange={handleFaviconUpload} className="hidden" /><button onClick={() => faviconInputRef.current?.click()} disabled={uploadingFavicon} className="px-4 py-2 bg-[#201d1a] border border-[#332e2a] rounded-xl text-xs text-white hover:border-[#ff6b35] disabled:opacity-50 flex items-center gap-2"><Upload className="w-3 h-3" /> {uploadingFavicon ? 'Upload...' : 'Uploader'}</button>{branding?.favicon && <img src={branding.favicon} alt="Favicon" className="h-6 w-6 object-contain" />}</div></div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Hero Background (1200x600)</label>
+            <label className="block text-xs text-gray-400 mb-1">Hero Background (max 1 MB)</label>
             <div className="flex items-center gap-3">
               <input ref={heroBgInputRef} type="file" accept="image/*" onChange={handleHeroBgUpload} className="hidden" />
               <button onClick={() => heroBgInputRef.current?.click()} disabled={uploadingHeroBg} className="px-4 py-2 bg-[#201d1a] border border-[#332e2a] rounded-xl text-xs text-white hover:border-[#ff6b35] disabled:opacity-50 flex items-center gap-2"><Upload className="w-3 h-3" /> {uploadingHeroBg ? 'Upload...' : 'Uploader'}</button>
-              {branding?.heroBg && <img src={branding.heroBg} alt="Hero" className="h-8 w-auto object-contain" />}
+              {branding?.heroBg && (
+                <div className="flex items-center gap-2">
+                  <img src={branding.heroBg} alt="Hero" className="h-8 w-auto object-contain" />
+                  <button onClick={handleRemoveHeroBg} className="text-red-400 hover:text-red-300"><X className="w-4 h-4" /></button>
+                </div>
+              )}
             </div>
-            <p className="text-[10px] text-gray-500 mt-1">1200x600px, WebP, max 500 KB.</p>
+            {heroBgMsg && <p className={`text-[10px] mt-1 ${heroBgMsg.includes('✅') ? 'text-emerald-400' : heroBgMsg.includes('🗑️') ? 'text-yellow-400' : 'text-red-400'}`}>{heroBgMsg}</p>}
+            <p className="text-[10px] text-gray-500 mt-1">Qualité originale préservée. Formats acceptés : JPG, PNG, WebP. Max 1 MB.</p>
           </div>
         </div>
         <div><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={branding?.showFooterLogo !== false} onChange={(e) => updateBranding('showFooterLogo', e.target.checked)} className="w-4 h-4 rounded accent-[#ff6b35]" /><span className="text-xs text-gray-300">Afficher le logo dans le footer</span></label></div>
