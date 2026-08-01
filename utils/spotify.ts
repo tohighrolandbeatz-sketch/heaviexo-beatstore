@@ -5,7 +5,7 @@ export function toSpotifyEmbedUrl(url: string): string {
     const u = new URL(url);
     const parts = u.pathname.split("/").filter(Boolean);
     if (parts.length >= 2) {
-      return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}`;
+      return `https://open.spotify.com/playlist/7elgtwyrwOievREEK9kt89?si=UWK12ONARQydnTb9njBfCg`;
     }
     return url;
   } catch {
