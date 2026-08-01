@@ -76,19 +76,20 @@ export default function AdminSettingsPage() {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setUploadingLogo(true); try { const blob = await upload(`branding/logo-${Date.now()}.webp`, file, { access: 'public', handleUploadUrl: '/api/upload' }); updateBranding('logo', blob.url); } catch { alert('Erreur'); } setUploadingLogo(false); };
   const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setUploadingFavicon(true); try { const blob = await upload(`branding/favicon-${Date.now()}.ico`, file, { access: 'public', handleUploadUrl: '/api/upload' }); updateBranding('favicon', blob.url); } catch { alert('Erreur'); } setUploadingFavicon(false); };
 
-  const handleHeroBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleHeroBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 500 * 1024) { alert('Image trop lourde (max 500 KB).'); return; }
+    if (file.size > 500 * 1024) { alert('❌ Image trop lourde (max 500 KB). Redimensionnez-la.'); return; }
     setUploadingHeroBg(true);
     try {
       const resized = await resizeImage(file, 1200, 600);
       const blob = await upload(`branding/hero-bg-${Date.now()}.webp`, resized, { access: 'public', handleUploadUrl: '/api/upload' });
       updateBranding('heroBg', blob.url);
-    } catch { alert('Erreur upload'); }
+      alert('✅ Hero Background uploadé avec succès ! Sauvegardez pour appliquer.');
+    } catch { alert('❌ Erreur upload'); }
     setUploadingHeroBg(false);
   };
-
+  
   if (loading) return <div className="text-center py-20 text-gray-400">Chargement...</div>;
 
   return (
