@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Check, Palette, Image, Type, Star, Upload } from 'lucide-react';
+import { Check, Palette, Image, Type, Star, Upload, Wrench } from 'lucide-react';
 import { upload } from '@vercel/blob/client';
 import { THEME_PRESETS, DEFAULT_THEME, type ThemePresetId } from '@/constants/themes';
 
@@ -122,6 +122,34 @@ export default function AdminSettingsPage() {
           <div><label className="block text-xs text-gray-400 mb-1">Titre</label><input type="text" value={branding?.heroTitle || ''} onChange={(e) => updateBranding('heroTitle', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
           <div><label className="block text-xs text-gray-400 mb-1">Sous-titre</label><input type="text" value={branding?.heroSubtitle || ''} onChange={(e) => updateBranding('heroSubtitle', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
           <div><label className="block text-xs text-gray-400 mb-1">URL Playlist Spotify</label><input type="text" value={branding?.spotifyPlaylist || ''} onChange={(e) => updateBranding('spotifyPlaylist', e.target.value)} placeholder="https://open.spotify.com/playlist/..." className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
+        </div>
+      </div>
+
+      {/* SECTION 5 : SERVICES */}
+      <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-4">
+        <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Wrench className="w-4 h-4 text-[#ff6b35]" /> Services (Page Services)</h3>
+        <p className="text-xs text-gray-400">Modifiez les titres, sous-titres, prix et features de chaque package. Features : une par ligne.</p>
+        
+        {[
+          { key: 'ep', label: 'EP Package' },
+          { key: 'album', label: 'Album Package' },
+          { key: 'custom', label: 'Custom Beat' },
+          { key: 'mixmaster', label: 'Mix & Master' },
+        ].map(({ key, label }) => (
+          <div key={key} className="bg-[#201d1a] rounded-xl p-3 space-y-2">
+            <span className="text-[10px] font-bold text-[#ff6b35] uppercase">{label}</span>
+            <div className="flex gap-2">
+              <input type="text" value={branding?.servicesConfig?.[key]?.title || ''} onChange={(e) => updateBranding('servicesConfig', { ...(branding?.servicesConfig || {}), [key]: { ...(branding?.servicesConfig?.[key] || {}), title: e.target.value } })} placeholder="Titre" className="flex-1 bg-black/50 border border-[#332e2a] rounded-lg px-2 py-1 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
+              <input type="text" value={branding?.servicesConfig?.[key]?.subtitle || ''} onChange={(e) => updateBranding('servicesConfig', { ...(branding?.servicesConfig || {}), [key]: { ...(branding?.servicesConfig?.[key] || {}), subtitle: e.target.value } })} placeholder="Sous-titre" className="flex-1 bg-black/50 border border-[#332e2a] rounded-lg px-2 py-1 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
+              <input type="text" value={branding?.servicesConfig?.[key]?.price || ''} onChange={(e) => updateBranding('servicesConfig', { ...(branding?.servicesConfig || {}), [key]: { ...(branding?.servicesConfig?.[key] || {}), price: e.target.value } })} placeholder="Prix" className="w-16 bg-black/50 border border-[#332e2a] rounded-lg px-2 py-1 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
+            </div>
+            <textarea value={branding?.servicesConfig?.[key]?.features?.join('\n') || ''} onChange={(e) => updateBranding('servicesConfig', { ...(branding?.servicesConfig || {}), [key]: { ...(branding?.servicesConfig?.[key] || {}), features: e.target.value.split('\n').filter((f: string) => f.trim()) } })} placeholder="Features (une par ligne)" className="w-full bg-black/50 border border-[#332e2a] rounded-lg px-2 py-1 text-white text-[10px] focus:outline-none focus:border-[#ff6b35] h-14" />
+          </div>
+        ))}
+
+        <div className="bg-[#201d1a] rounded-xl p-3 space-y-2">
+          <span className="text-[10px] font-bold text-[#ff6b35] uppercase">FAQ (Question|Réponse, une par ligne)</span>
+          <textarea value={branding?.servicesConfig?.faq?.map((item: any) => `${item.q}|${item.a}`).join('\n') || ''} onChange={(e) => updateBranding('servicesConfig', { ...(branding?.servicesConfig || {}), faq: e.target.value.split('\n').filter((f: string) => f.trim()).map((line: string) => { const [q, a] = line.split('|'); return { q: q?.trim() || '', a: a?.trim() || '' }; }) })} placeholder="Question|Réponse" className="w-full bg-black/50 border border-[#332e2a] rounded-lg px-2 py-1 text-white text-[10px] focus:outline-none focus:border-[#ff6b35] h-32" />
         </div>
       </div>
     </div>
