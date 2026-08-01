@@ -5,14 +5,19 @@ import { sql } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 const TIMEOUT = 8000;
 
+// Cache en mémoire (valable jusqu'au redéploiement)
 let cachedPayload: any = null;
 let lastFetch = 0;
-const CACHE_TTL = 30000;
+const CACHE_TTL = 30000; // 30 secondes
 
 export async function GET() {
   const now = Date.now();
+
+  // Retourner le cache s'il est frais
   if (cachedPayload && (now - lastFetch) < CACHE_TTL) {
-    return NextResponse.json(cachedPayload, { headers: { 'Cache-Control': 'public, max-age=30', 'X-Cache': 'HIT' } });
+    return NextResponse.json(cachedPayload, {
+      headers: { 'Cache-Control': 'public, max-age=30, s-maxage=30', 'X-Cache': 'HIT' },
+    });
   }
 
   try {
@@ -20,6 +25,7 @@ export async function GET() {
       db.execute(sql`SELECT * FROM design_config LIMIT 1`),
       new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT)),
     ]) as any;
+
     const row = result?.rows?.[0];
 
     cachedPayload = {
@@ -35,8 +41,8 @@ export async function GET() {
         heroTitle: row.hero_title,
         heroSubtitle: row.hero_subtitle,
         heroBadge: row.hero_badge,
-        heroBg: row.hero_bg || '',
         spotifyPlaylist: row.spotify_playlist || '',
+        heroBg: row.hero_bg || '',
         servicesConfig: (() => { try { return JSON.parse(row.services_config as string || '{}'); } catch { return {}; } })(),
         showFooterLogo: row.show_footer_logo !== false,
         social: row.social_links ? JSON.parse(row.social_links as string) : {},
@@ -44,9 +50,17 @@ export async function GET() {
       } : {}
     };
     lastFetch = now;
-    return NextResponse.json(cachedPayload, { headers: { 'Cache-Control': 'public, max-age=30', 'X-Cache': 'MISS' } });
+
+    return NextResponse.json(cachedPayload, {
+      headers: { 'Cache-Control': 'public, max-age=30, s-maxage=30', 'X-Cache': 'MISS' },
+    });
   } catch (error) {
-    if (cachedPayload) return NextResponse.json(cachedPayload, { headers: { 'X-Cache': 'STALE' } });
+    // Si timeout, renvoyer le vieux cache s'il existe
+    if (cachedPayload) {
+      return NextResponse.json(cachedPayload, {
+        headers: { 'Cache-Control': 'public, max-age=10', 'X-Cache': 'STALE' },
+      });
+    }
     return NextResponse.json({ branding: {} }, { status: 200 });
   }
 }
@@ -69,8 +83,10 @@ export async function POST(request: Request) {
         show_footer_logo = EXCLUDED.show_footer_logo, social_links = EXCLUDED.social_links, theme_config = EXCLUDED.theme_config, updated_at = NOW()
     `);
 
+    // Invalider le cache après sauvegarde
     cachedPayload = null;
     lastFetch = 0;
+
     return NextResponse.json({ success: true }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return NextResponse.json({ error: 'Erreur sauvegarde' }, { status: 500 });
