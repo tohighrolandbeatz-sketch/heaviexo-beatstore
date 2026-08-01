@@ -1,15 +1,26 @@
 import { NextResponse } from 'next/server';
-import { licenseRepository } from '@/lib/repositories/licenseRepository';
+import { db } from '@/lib/db';
+import { licenses } from '@/app/config/schema';
+import { asc } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
+const TIMEOUT = 5000; // 5 secondes max
 
 export async function GET() {
   try {
-    const licenses = await licenseRepository.findAll();
-    return NextResponse.json(licenses, { status: 200 });
-  } catch (error) {
-    console.error('Erreur lors de la récupération des licences:', error);
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
+    const result = await Promise.race([
+      db.select().from(licenses).orderBy(asc(licenses.price)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT)),
+    ]) as any[];
+
+    const data = result.map((l: any) => ({
+      ...l,
+      features: (() => { try { return JSON.parse(l.features || '[]'); } catch { return []; } })(),
+    }));
+    return NextResponse.json(data);
+  } catch (error: any) {
+    console.error('Licenses API error:', error.message);
+    return NextResponse.json([], { status: 200 }); // Renvoie tableau vide au lieu d'erreur
   }
 }
 
@@ -17,22 +28,22 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { id, name, price, description, features } = body;
+    if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 });
+    const featuresStr = typeof features === 'string' ? features : JSON.stringify(features || []);
 
-    if (!id || !name || price === undefined) {
-      return NextResponse.json({ error: 'Champs obligatoires manquants (id, name, price)' }, { status: 400 });
-    }
+    await Promise.race([
+      db.insert(licenses).values({
+        id, name: name || '', price: price || 0, description: description || '', features: featuresStr,
+        createdAt: new Date(), updatedAt: new Date(),
+      }).onConflictDoUpdate({
+        target: licenses.id,
+        set: { name: name || '', price: price || 0, description: description || '', features: featuresStr, updatedAt: new Date() },
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT)),
+    ]);
 
-    const newLicense = licenseRepository.create({
-      id,
-      name,
-      price,
-      description,
-      features,
-    });
-
-    return NextResponse.json(newLicense, { status: 201 });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Erreur lors de la création de la licence:', error);
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
+    return NextResponse.json({ error: 'Erreur sauvegarde' }, { status: 500 });
   }
 }
