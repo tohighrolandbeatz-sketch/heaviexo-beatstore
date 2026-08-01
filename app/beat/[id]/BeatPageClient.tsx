@@ -116,7 +116,7 @@ export default function BeatPageClient({ beat }: { beat: any }) {
             </div>
           </div>
           <div className="w-52 h-52 md:w-64 md:h-64 rounded-3xl overflow-hidden shadow-2xl relative z-10">
-            <img src={mappedBeat.cover} alt={mappedBeat.title} className="w-full h-full object-cover" />
+            <img loading="lazy" width="400" height="400" src={mappedBeat.cover} alt={mappedBeat.title} className="w-full h-full object-cover" />
           </div>
         </div>
 

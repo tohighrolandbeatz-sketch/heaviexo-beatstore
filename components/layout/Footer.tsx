@@ -21,7 +21,7 @@ export function Footer({ t, setViewMode, footerText, copyrightText }: FooterProp
     <footer className="mt-20 backdrop-blur-xl px-4 md:px-8 py-12 shadow-2xl" style={{ background: 'color-mix(in srgb, var(--color-secondary, #161311) 95%, transparent)' }}>
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
         <div className="space-y-4">
-          {showLogo && <img src={branding?.logo || "/LOGO-BEAT.png"} alt={branding?.siteName || "Logo"} className="h-10 w-auto object-contain" />}
+          {showLogo && <img loading="lazy" width="200" height="40" src={branding?.logo || "/LOGO-BEAT.png"} alt={branding?.siteName || "Logo"} className="h-10 w-auto object-contain" />}
           <p className="text-xs text-[#C2B9B0] leading-relaxed">{branding?.footerText || footerText}</p>
           {hasSocials && (
             <div className="flex items-center gap-3 pt-2 flex-wrap">

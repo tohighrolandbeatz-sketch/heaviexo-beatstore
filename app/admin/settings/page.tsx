@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Check, Palette, Image, Type, Star, Upload, Wrench, Plus, Trash2 } from 'lucide-react';
+import { Check, Palette, Image, Type, Star, Upload } from 'lucide-react';
 import { upload } from '@vercel/blob/client';
 import { THEME_PRESETS, DEFAULT_THEME, type ThemePresetId } from '@/constants/themes';
 
@@ -49,37 +49,6 @@ export default function AdminSettingsPage() {
   const updateBranding = (key: string, value: any) => { setBranding((prev: any) => ({ ...prev, [key]: value })); };
   const updateSocial = (platform: string, value: string) => { setBranding((prev: any) => ({ ...prev, social: { ...(prev.social || {}), [platform]: value } })); };
   const updateTheme = (key: string, value: string) => { setTheme((prev: any) => ({ ...prev, [key]: value })); };
-  const updateServicesConfig = (serviceKey: string, field: string, value: any) => {
-    setBranding((prev: any) => ({
-      ...prev,
-      servicesConfig: {
-        ...(prev.servicesConfig || {}),
-        [serviceKey]: { ...(prev.servicesConfig?.[serviceKey] || {}), [field]: value },
-      },
-    }));
-  };
-  const addFaqItem = () => {
-    setBranding((prev: any) => ({
-      ...prev,
-      servicesConfig: {
-        ...(prev.servicesConfig || {}),
-        faq: [...(prev.servicesConfig?.faq || []), { q: '', a: '' }],
-      },
-    }));
-  };
-  const updateFaqItem = (index: number, field: 'q' | 'a', value: string) => {
-    setBranding((prev: any) => {
-      const faq = [...(prev.servicesConfig?.faq || [])];
-      faq[index] = { ...faq[index], [field]: value };
-      return { ...prev, servicesConfig: { ...(prev.servicesConfig || {}), faq } };
-    });
-  };
-  const removeFaqItem = (index: number) => {
-    setBranding((prev: any) => {
-      const faq = (prev.servicesConfig?.faq || []).filter((_: any, i: number) => i !== index);
-      return { ...prev, servicesConfig: { ...(prev.servicesConfig || {}), faq } };
-    });
-  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setUploadingLogo(true); try { const blob = await upload(`branding/logo-${Date.now()}.${file.name.split('.').pop()}`, file, { access: 'public', handleUploadUrl: '/api/upload' }); updateBranding('logo', blob.url); } catch { alert('Erreur'); } setUploadingLogo(false); };
   const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; setUploadingFavicon(true); try { const blob = await upload(`branding/favicon-${Date.now()}.${file.name.split('.').pop()}`, file, { access: 'public', handleUploadUrl: '/api/upload' }); updateBranding('favicon', blob.url); } catch { alert('Erreur'); } setUploadingFavicon(false); };
@@ -96,7 +65,6 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      {/* BRANDING */}
       <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Image className="w-4 h-4 text-[#ff6b35]" /> Branding</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -110,7 +78,6 @@ export default function AdminSettingsPage() {
         <div><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={branding?.showFooterLogo !== false} onChange={(e) => updateBranding('showFooterLogo', e.target.checked)} className="w-4 h-4 rounded accent-[#ff6b35]" /><span className="text-xs text-gray-300">Afficher le logo dans le footer</span></label></div>
       </div>
 
-      {/* FOOTER */}
       <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Type className="w-4 h-4 text-[#ff6b35]" /> Footer & Contact</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -127,7 +94,6 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      {/* THÈMES */}
       <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Palette className="w-4 h-4 text-[#ff6b35]" /> Thème</h3>
         <div className="flex flex-wrap gap-2">
@@ -149,7 +115,6 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      {/* HERO */}
       <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Star className="w-4 h-4 text-[#ff6b35]" /> Page d'accueil (Hero Banner)</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -157,70 +122,6 @@ export default function AdminSettingsPage() {
           <div><label className="block text-xs text-gray-400 mb-1">Titre</label><input type="text" value={branding?.heroTitle || ''} onChange={(e) => updateBranding('heroTitle', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
           <div><label className="block text-xs text-gray-400 mb-1">Sous-titre</label><input type="text" value={branding?.heroSubtitle || ''} onChange={(e) => updateBranding('heroSubtitle', e.target.value)} className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
           <div><label className="block text-xs text-gray-400 mb-1">URL Playlist Spotify</label><input type="text" value={branding?.spotifyPlaylist || ''} onChange={(e) => updateBranding('spotifyPlaylist', e.target.value)} placeholder="https://open.spotify.com/playlist/..." className="w-full bg-[#201d1a] border border-[#332e2a] rounded-xl px-4 py-2.5 text-white text-xs focus:outline-none focus:border-[#ff6b35]" /></div>
-        </div>
-      </div>
-
-      {/* SERVICES */}
-      <div className="bg-[#171513] border border-[#26221f] rounded-2xl p-6 space-y-6">
-        <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2"><Wrench className="w-4 h-4 text-[#ff6b35]" /> Services (Page Services)</h3>
-        
-        {[
-          { key: 'ep', label: 'EP Package' },
-          { key: 'album', label: 'Album Package' },
-          { key: 'custom', label: 'Custom Beat' },
-          { key: 'mixmaster', label: 'Mix & Master' },
-        ].map(({ key, label }) => (
-          <div key={key} className="bg-[#201d1a] rounded-xl p-4 space-y-3">
-            <span className="text-[10px] font-bold text-[#ff6b35] uppercase">{label}</span>
-            <div className="grid grid-cols-3 gap-2">
-              <input type="text" value={branding?.servicesConfig?.[key]?.title || ''} onChange={(e) => updateServicesConfig(key, 'title', e.target.value)} placeholder="Titre" className="bg-black/50 border border-[#332e2a] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#ff6b35]" />
-              <input type="text" value={branding?.servicesConfig?.[key]?.subtitle || ''} onChange={(e) => updateServicesConfig(key, 'subtitle', e.target.value)} placeholder="Sous-titre" className="bg-black/50 border border-[#332e2a] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#ff6b35]" />
-              <input type="text" value={branding?.servicesConfig?.[key]?.price || ''} onChange={(e) => updateServicesConfig(key, 'price', e.target.value)} placeholder="Prix" className="bg-black/50 border border-[#332e2a] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#ff6b35]" />
-            </div>
-            <div>
-              <label className="text-[10px] text-gray-400 mb-1 block">Features</label>
-              {(branding?.servicesConfig?.[key]?.features || ['']).map((feat: string, i: number) => (
-                <div key={i} className="flex gap-2 mb-1">
-                  <input type="text" value={feat} onChange={(e) => {
-                    const feats = [...(branding?.servicesConfig?.[key]?.features || [''])];
-                    feats[i] = e.target.value;
-                    updateServicesConfig(key, 'features', feats);
-                  }} placeholder={`Feature ${i + 1}`} className="flex-1 bg-black/50 border border-[#332e2a] rounded-lg px-3 py-1.5 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
-                  {i > 0 && (
-                    <button onClick={() => {
-                      const feats = (branding?.servicesConfig?.[key]?.features || ['']).filter((_: any, idx: number) => idx !== i);
-                      updateServicesConfig(key, 'features', feats.length === 0 ? [''] : feats);
-                    }} className="text-red-400 hover:text-red-300 p-1"><Trash2 className="w-3 h-3" /></button>
-                  )}
-                </div>
-              ))}
-              <button onClick={() => {
-                const feats = [...(branding?.servicesConfig?.[key]?.features || ['']), ''];
-                updateServicesConfig(key, 'features', feats);
-              }} className="text-[10px] text-[#ff6b35] hover:text-[#FF8C5A] flex items-center gap-1 mt-1">
-                <Plus className="w-3 h-3" /> Ajouter une feature
-              </button>
-            </div>
-          </div>
-        ))}
-
-        {/* FAQ */}
-        <div className="bg-[#201d1a] rounded-xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-[#ff6b35] uppercase">FAQ</span>
-            <button onClick={addFaqItem} className="text-[10px] text-[#ff6b35] hover:text-[#FF8C5A] flex items-center gap-1">
-              <Plus className="w-3 h-3" /> Ajouter
-            </button>
-          </div>
-          {(branding?.servicesConfig?.faq || []).map((item: any, i: number) => (
-            <div key={i} className="flex gap-2 items-start">
-              <div className="flex-1 space-y-1">
-                <input type="text" value={item.q || ''} onChange={(e) => updateFaqItem(i, 'q', e.target.value)} placeholder="Question" className="w-full bg-black/50 border border-[#332e2a] rounded-lg px-3 py-1.5 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
-                <textarea value={item.a || ''} onChange={(e) => updateFaqItem(i, 'a', e.target.value)} placeholder="Réponse" rows={2} className="w-full bg-black/50 border border-[#332e2a] rounded-lg px-3 py-1.5 text-white text-[10px] focus:outline-none focus:border-[#ff6b35]" />
-              </div>
-              <button onClick={() => removeFaqItem(i)} className="text-red-400 hover:text-red-300 p-1 mt-1"><Trash2 className="w-3 h-3" /></button>
-            </div>
-          ))}
         </div>
       </div>
     </div>
