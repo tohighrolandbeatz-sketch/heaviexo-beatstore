@@ -7,7 +7,7 @@ export default async function AdminDashboardPage() {
   let beatCountResult = [{ count: 0 }];
   let saleCountResult = [{ count: 0 }];
   let userCountResult = [{ count: 0 }];
-  let totalRevenueResult = [{ total: 0 }];
+  let totalRevenueResult: any = [{ total: 0 }];
 
   try { beatCountResult = await db.select({ count: count() }).from(beats); } catch (e) {}
   try { saleCountResult = await db.select({ count: count() }).from(sales); } catch (e) {}
