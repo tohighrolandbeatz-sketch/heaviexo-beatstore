@@ -156,6 +156,24 @@ export default function AdminBeatsPage() {
     return Object.keys(newErrors).length === 0;
   }
 
+  async function resizeImage(file: File, maxWidth: number, maxHeight: number): Promise<File> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = (h * maxWidth) / w; w = maxWidth; }
+        if (h > maxHeight) { w = (w * maxHeight) / h; h = maxHeight; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob) => {
+          resolve(new File([blob!], file.name, { type: "image/webp" }));
+        }, "image/webp", 0.8);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function uploadSingleFile(file: File, key: string) {
     setUploading(key);
     setUploadProgresses(prev => [...prev.filter(p => p.key !== key), { key, name: file.name, progress: 0 }]);
