@@ -324,8 +324,20 @@ export default function AdminBeatsPage() {
                       </button>
                     </td>
                     <td className="p-4 text-right space-x-2">
-                      <button onClick={() => { setCurrentBeatId(beat.id); setTitle(beat.title); setPrice(beat.price); setCategory(beat.category || ''); setBpm(beat.bpm || ''); setMusicalKey(beat.musicalKey || ''); setMoods(beat.moods || []); setSelectedLicenses(beat.licenses || ['mp3', 'wav', 'stems', 'exclusive']); setIsModalOpen(true); }} className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"><Edit className="w-4 h-4" /></button>
-                      <button onClick={async () => { if (confirm('Supprimer ce beat ?')) { await fetch(`/api/beats/${beat.id}`, { method: 'DELETE' }); fetchBeats(); } }} className="p-2 bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+<button onClick={() => { 
+  setCurrentBeatId(beat.id); setTitle(beat.title); setPrice(beat.price); 
+  setCategory(beat.category || ''); setBpm(beat.bpm || ''); 
+  setMusicalKey(beat.musicalKey || ''); setMoods(beat.moods || []);
+  setSelectedLicenses(beat.licenses || ['mp3', 'wav', 'stems', 'exclusive']);
+  // Pré-remplir les fichiers existants
+  const existingFiles: any[] = [];
+  if (beat.cover) existingFiles.push({ key: 'cover', name: decodeURIComponent(beat.cover.split('/').pop() || 'cover'), url: beat.cover, size: '' });
+  if (beat.previewMp3) existingFiles.push({ key: 'previewMp3', name: decodeURIComponent(beat.previewMp3.split('/').pop() || 'preview.mp3'), url: beat.previewMp3, size: '' });
+  if (beat.masterWav) existingFiles.push({ key: 'masterWav', name: decodeURIComponent(beat.masterWav.split('/').pop() || 'master.wav'), url: beat.masterWav, size: '' });
+  if (beat.stemsZip) existingFiles.push({ key: 'stemsZip', name: decodeURIComponent(beat.stemsZip.split('/').pop() || 'stems.zip'), url: beat.stemsZip, size: '' });
+  setUploadedFiles(existingFiles);
+  setIsModalOpen(true); 
+}} className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"><Edit className="w-4 h-4" /></button>                      <button onClick={async () => { if (confirm('Supprimer ce beat ?')) { await fetch(`/api/beats/${beat.id}`, { method: 'DELETE' }); fetchBeats(); } }} className="p-2 bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </td>
                   </tr>
                 );

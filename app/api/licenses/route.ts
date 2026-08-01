@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const licenses = licenseRepository.findAll();
+    const licenses = await licenseRepository.findAll();
     return NextResponse.json(licenses, { status: 200 });
   } catch (error) {
     console.error('Erreur lors de la récupération des licences:', error);
