@@ -6,7 +6,7 @@ import { count, sum } from 'drizzle-orm';
 export default async function AdminDashboardPage() {
   const beatCountResult = await db.select({ count: count() }).from(beats);
   const saleCountResult = await db.select({ count: count() }).from(sales);
-  const userCountResult = await db.select({ count: count() }).from(users);
+  let userCountResult = [{ count: 0 }]; try { userCountResult = await db.select({ count: count() }).from(users); } catch (e) {}
   const totalRevenueResult = await db.select({ total: sum(sales.amount) }).from(sales);
 
   const beatCount = beatCountResult[0]?.count || 0;
