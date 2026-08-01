@@ -1,17 +1,33 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { beatRepository } from '@/lib/repositories/beatRepository';
 
 export const dynamic = 'force-dynamic';
 const TIMEOUT = 8000;
+const ADMIN_COOKIE_VALUE = 'heaviexo2026';
 
 let cachedBeats: any = null;
 let lastFetch = 0;
 const CACHE_TTL = 30000;
 
+// Retire les champs sensibles (fichiers payants) des beats renvoyés au public
+function sanitizeForPublic(beats: any[]) {
+  return beats.map(({ master_url, stems_url, ...safeBeat }) => safeBeat);
+}
+
+async function isAdminRequest(): Promise<boolean> {
+  const cookieStore = await cookies();
+  const auth = cookieStore.get('admin_auth');
+  return auth?.value === ADMIN_COOKIE_VALUE;
+}
+
 export async function GET() {
   const now = Date.now();
+  const isAdmin = await isAdminRequest();
+
   if (cachedBeats && (now - lastFetch) < CACHE_TTL) {
-    return NextResponse.json(cachedBeats, { status: 200, headers: { 'X-Cache': 'HIT' } });
+    const payload = isAdmin ? cachedBeats : sanitizeForPublic(cachedBeats);
+    return NextResponse.json(payload, { status: 200, headers: { 'X-Cache': 'HIT' } });
   }
 
   try {
@@ -22,10 +38,12 @@ export async function GET() {
 
     cachedBeats = beats;
     lastFetch = now;
-    return NextResponse.json(beats, { status: 200, headers: { 'X-Cache': 'MISS' } });
+    const payload = isAdmin ? beats : sanitizeForPublic(beats);
+    return NextResponse.json(payload, { status: 200, headers: { 'X-Cache': 'MISS' } });
   } catch (error) {
     if (cachedBeats) {
-      return NextResponse.json(cachedBeats, { status: 200, headers: { 'X-Cache': 'STALE' } });
+      const payload = isAdmin ? cachedBeats : sanitizeForPublic(cachedBeats);
+      return NextResponse.json(payload, { status: 200, headers: { 'X-Cache': 'STALE' } });
     }
     return NextResponse.json([], { status: 200 });
   }
