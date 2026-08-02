@@ -104,10 +104,6 @@ export default function BeatstorePage() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-
-  useEffect(() => {
-    if (designBranding?.tagAudio) setTagAudioUrl(designBranding.tagAudio);
-  }, [designBranding?.tagAudio]);
   }, []);
 
   useEffect(() => {
