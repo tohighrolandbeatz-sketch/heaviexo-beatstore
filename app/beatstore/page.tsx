@@ -18,6 +18,7 @@ import { SpotifySection } from "@/components/home/SpotifySection";
 import { Beat, License } from "@/types";
 import { ShoppingCart, Play, Pause, Search, Share2 } from "lucide-react";
 import { useBranding } from "@/components/ThemeProvider";
+import { setTagAudioUrl } from "@/hooks/usePlayer";
 
 const waveAnimation = `
   @keyframes pulseWave {
@@ -103,7 +104,15 @@ export default function BeatstorePage() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+
+  useEffect(() => {
+    if (designBranding?.tagAudio) setTagAudioUrl(designBranding.tagAudio);
+  }, [designBranding?.tagAudio]);
   }, []);
+
+  useEffect(() => {
+    if (designBranding?.tagAudio) setTagAudioUrl(designBranding.tagAudio);
+  }, [designBranding?.tagAudio]);
 
   const filteredLicenses = selectedBeatForPurchase?.licenses_json
     ? licensesList.filter((l: License) => {

@@ -37,10 +37,12 @@ export default function AdminSettingsPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [uploadingHeroBg, setUploadingHeroBg] = useState(false);
+  const [uploadingTagAudio, setUploadingTagAudio] = useState(false);
   const [heroBgMsg, setHeroBgMsg] = useState('');
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
   const heroBgInputRef = useRef<HTMLInputElement>(null);
+  const tagAudioInputRef = useRef<HTMLInputElement>(null);
 
   const loadDesign = async () => {
     const res = await fetch('/api/design', { cache: 'no-store' });
@@ -84,7 +86,6 @@ export default function AdminSettingsPage() {
     setUploadingHeroBg(true);
     setHeroBgMsg('');
     try {
-      // Supprime l'ancienne image du Blob storage avant d'uploader la nouvelle
       if (branding?.heroBg) {
         try {
           await fetch('/api/blob/delete', {
@@ -92,12 +93,9 @@ export default function AdminSettingsPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: branding.heroBg }),
           });
-        } catch {
-          // Si la suppression échoue, on continue quand même l'upload de la nouvelle image
-        }
+        } catch {}
       }
 
-      // Pas de redimensionnement pour le Hero — qualité originale préservée
       const blob = await upload(`branding/hero-bg-${Date.now()}.${file.name.split('.').pop() || 'webp'}`, file, { access: 'public', handleUploadUrl: '/api/upload' });
       updateBranding('heroBg', blob.url);
       setHeroBgMsg('✅ Uploadé ! Cliquez "Sauvegarder tout" pour appliquer.');
@@ -113,12 +111,21 @@ export default function AdminSettingsPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: branding.heroBg }),
         });
-      } catch {
-        // Si la suppression échoue côté Blob, on vide quand même la référence en base
-      }
+      } catch {}
     }
     updateBranding('heroBg', '');
     setHeroBgMsg('🗑️ Image supprimée. Sauvegardez pour confirmer.');
+  };
+
+  const handleTagAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingTagAudio(true);
+    try {
+      const blob = await upload(`branding/tag-audio-${Date.now()}.${file.name.split('.').pop() || 'mp3'}`, file, { access: 'public', handleUploadUrl: '/api/upload' });
+      updateBranding('tagAudio', blob.url);
+    } catch { alert('Erreur upload du tag audio'); }
+    setUploadingTagAudio(false);
   };
 
   if (loading) return <div className="text-center py-20 text-gray-400">Chargement...</div>;
@@ -157,6 +164,19 @@ export default function AdminSettingsPage() {
             </div>
             {heroBgMsg && <p className={`text-[10px] mt-1 ${heroBgMsg.includes('✅') ? 'text-emerald-400' : heroBgMsg.includes('🗑️') ? 'text-yellow-400' : 'text-red-400'}`}>{heroBgMsg}</p>}
             <p className="text-[10px] text-gray-500 mt-1">Qualité originale préservée. Formats acceptés : JPG, PNG, WebP. Max 1 MB.</p>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Tag Audio (overlay sur les previews)</label>
+            <div className="flex items-center gap-3">
+              <input ref={tagAudioInputRef} type="file" accept="audio/*" onChange={handleTagAudioUpload} className="hidden" />
+              <button onClick={() => tagAudioInputRef.current?.click()} disabled={uploadingTagAudio} className="px-4 py-2 bg-[#201d1a] border border-[#332e2a] rounded-xl text-xs text-white hover:border-[#ff6b35] disabled:opacity-50 flex items-center gap-2">
+                <Upload className="w-3 h-3" /> {uploadingTagAudio ? 'Upload...' : 'Uploader'}
+              </button>
+              {branding?.tagAudio && (
+                <audio controls src={branding.tagAudio} className="h-8" style={{ maxWidth: '180px' }} />
+              )}
+            </div>
+            <p className="text-[10px] text-gray-500 mt-1">Court son (2-3 sec) joué toutes les 12 secondes par-dessus les previews.</p>
           </div>
         </div>
         <div><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={branding?.showFooterLogo !== false} onChange={(e) => updateBranding('showFooterLogo', e.target.checked)} className="w-4 h-4 rounded accent-[#ff6b35]" /><span className="text-xs text-gray-300">Afficher le logo dans le footer</span></label></div>

@@ -5,10 +5,9 @@ import { sql } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 const TIMEOUT = 8000;
 
-// Cache en mémoire (valable jusqu'au redéploiement)
 let cachedPayload: any = null;
 let lastFetch = 0;
-const CACHE_TTL = 30000; // 30 secondes
+const CACHE_TTL = 30000;
 
 export async function GET() {
   const now = Date.now();
@@ -42,6 +41,7 @@ export async function GET() {
         heroBadge: row.hero_badge,
         spotifyPlaylist: row.spotify_playlist || '',
         heroBg: row.hero_bg || '',
+        tagAudio: row.tag_audio || '',
         servicesConfig: (() => { try { return JSON.parse(row.services_config as string || '{}'); } catch { return {}; } })(),
         showFooterLogo: row.show_footer_logo !== false,
         social: row.social_links ? JSON.parse(row.social_links as string) : {},
@@ -71,12 +71,13 @@ export async function POST(request: Request) {
     const servicesConfig = branding?.servicesConfig ? JSON.stringify(branding.servicesConfig) : '{}';
 
     await db.execute(sql`
-      INSERT INTO design_config (id, site_name, description, logo, favicon, footer_text, copyright, whatsapp, email, hero_title, hero_subtitle, hero_badge, hero_bg, spotify_playlist, services_config, show_footer_logo, social_links, theme_config, updated_at)
-      VALUES ('default', ${branding?.siteName || ''}, ${branding?.description || ''}, ${branding?.logo || ''}, ${branding?.favicon || ''}, ${branding?.footerText || ''}, ${branding?.copyright || ''}, ${branding?.whatsapp || ''}, ${branding?.email || ''}, ${branding?.heroTitle || ''}, ${branding?.heroSubtitle || ''}, ${branding?.heroBadge || ''}, ${branding?.heroBg || ''}, ${branding?.spotifyPlaylist || ''}, ${servicesConfig}, ${branding?.showFooterLogo !== false}, ${social}, ${themeConfig}, NOW())
+      INSERT INTO design_config (id, site_name, description, logo, favicon, footer_text, copyright, whatsapp, email, hero_title, hero_subtitle, hero_badge, hero_bg, tag_audio, spotify_playlist, services_config, show_footer_logo, social_links, theme_config, updated_at)
+      VALUES ('default', ${branding?.siteName || ''}, ${branding?.description || ''}, ${branding?.logo || ''}, ${branding?.favicon || ''}, ${branding?.footerText || ''}, ${branding?.copyright || ''}, ${branding?.whatsapp || ''}, ${branding?.email || ''}, ${branding?.heroTitle || ''}, ${branding?.heroSubtitle || ''}, ${branding?.heroBadge || ''}, ${branding?.heroBg || ''}, ${branding?.tagAudio || ''}, ${branding?.spotifyPlaylist || ''}, ${servicesConfig}, ${branding?.showFooterLogo !== false}, ${social}, ${themeConfig}, NOW())
       ON CONFLICT (id) DO UPDATE SET
         site_name = EXCLUDED.site_name, description = EXCLUDED.description, logo = EXCLUDED.logo, favicon = EXCLUDED.favicon,
         footer_text = EXCLUDED.footer_text, copyright = EXCLUDED.copyright, whatsapp = EXCLUDED.whatsapp, email = EXCLUDED.email,
         hero_title = EXCLUDED.hero_title, hero_subtitle = EXCLUDED.hero_subtitle, hero_badge = EXCLUDED.hero_badge, hero_bg = EXCLUDED.hero_bg,
+        tag_audio = EXCLUDED.tag_audio,
         spotify_playlist = EXCLUDED.spotify_playlist, services_config = EXCLUDED.services_config,
         show_footer_logo = EXCLUDED.show_footer_logo, social_links = EXCLUDED.social_links, theme_config = EXCLUDED.theme_config, updated_at = NOW()
     `);

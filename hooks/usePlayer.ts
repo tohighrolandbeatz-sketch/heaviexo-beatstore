@@ -16,11 +16,54 @@ export interface PlayerState {
   duration: number;
 }
 
-// Élément audio GLOBAL partagé, jamais détruit
+// Élément audio principal, GLOBAL, jamais détruit
 let globalAudio: HTMLAudioElement | null = null;
 if (typeof window !== 'undefined') {
   globalAudio = new Audio();
   globalAudio.volume = 0.8;
+}
+
+// Élément audio du TAG (joué en overlay par-dessus la preview), GLOBAL lui aussi
+let tagAudio: HTMLAudioElement | null = null;
+let tagAudioUrl: string | null = null;
+let tagIntervalId: ReturnType<typeof setInterval> | null = null;
+const TAG_INTERVAL_MS = 12000; // le tag revient toutes les 12 secondes
+
+function ensureTagAudio() {
+  if (typeof window === 'undefined' || !tagAudioUrl) return;
+  if (!tagAudio) {
+    tagAudio = new Audio(tagAudioUrl);
+    tagAudio.volume = 0.55;
+  } else if (tagAudio.src !== tagAudioUrl) {
+    tagAudio.src = tagAudioUrl;
+  }
+}
+
+// Appelé une fois la config chargée (voir app/beatstore/page.tsx)
+export function setTagAudioUrl(url: string) {
+  if (!url || url === tagAudioUrl) return;
+  tagAudioUrl = url;
+  ensureTagAudio();
+}
+
+function startTagLoop() {
+  if (!tagAudioUrl) return;
+  ensureTagAudio();
+  stopTagLoop();
+  tagAudio?.play().catch(() => {});
+  tagIntervalId = setInterval(() => {
+    if (!tagAudio) return;
+    tagAudio.currentTime = 0;
+    tagAudio.play().catch(() => {});
+  }, TAG_INTERVAL_MS);
+}
+
+function stopTagLoop() {
+  if (tagIntervalId) {
+    clearInterval(tagIntervalId);
+    tagIntervalId = null;
+  }
+  tagAudio?.pause();
 }
 
 // État GLOBAL partagé entre TOUS les composants qui appellent usePlayer()
@@ -51,10 +94,8 @@ function getServerSnapshot(): PlayerState {
   return { beat: null, isPlaying: false, currentTime: 0, duration: 0 };
 }
 
-// Callback "fin de lecture" — géré globalement (un seul actif à la fois)
 let onEndCallback: (() => void) | null = null;
 
-// Écouteurs attachés une seule fois sur l'élément audio global
 let listenersAttached = false;
 function attachAudioListeners() {
   if (listenersAttached || !globalAudio) return;
@@ -65,14 +106,13 @@ function attachAudioListeners() {
   audio.addEventListener('loadedmetadata', () => setStore({ duration: audio.duration }));
   audio.addEventListener('ended', () => {
     setStore({ isPlaying: false });
+    stopTagLoop();
     if (onEndCallback) onEndCallback();
   });
 }
 attachAudioListeners();
 
 export function usePlayer() {
-  // useSyncExternalStore garantit que TOUS les composants voient le même état
-  // et se re-rendent quand il change, où qu'ils soient dans l'arbre React.
   const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const play = useCallback((beat: PlayerBeat) => {
@@ -83,9 +123,11 @@ export function usePlayer() {
       // Même beat : toggle play/pause (continue au lieu de relancer)
       if (audio.paused) {
         audio.play();
+        startTagLoop();
         setStore({ isPlaying: true });
       } else {
         audio.pause();
+        stopTagLoop();
         setStore({ isPlaying: false });
       }
     } else {
@@ -94,6 +136,7 @@ export function usePlayer() {
       audio.currentTime = 0;
       audio.src = beat.previewMp3;
       audio.play().catch(() => {});
+      startTagLoop();
       setStore({ beat, isPlaying: true, currentTime: 0, duration: 0 });
     }
   }, []);
@@ -107,15 +150,18 @@ export function usePlayer() {
     if (!audio) return;
     if (audio.paused) {
       audio.play();
+      startTagLoop();
       setStore({ isPlaying: true });
     } else {
       audio.pause();
+      stopTagLoop();
       setStore({ isPlaying: false });
     }
   }, [play]);
 
   const pause = useCallback(() => {
     globalAudio?.pause();
+    stopTagLoop();
     setStore({ isPlaying: false });
   }, []);
 
@@ -151,3 +197,4 @@ export function usePlayer() {
     setOnEnd,
   };
 }
+
