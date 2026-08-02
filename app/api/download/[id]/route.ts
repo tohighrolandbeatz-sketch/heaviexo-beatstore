@@ -1,28 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { beatRepository } from '@/lib/repositories/beatRepository';
+import { NextResponse } from 'next/server';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-
-    const beat = await beatRepository.findById(id);
-
-    if (!beat) {
-      return NextResponse.json({ error: 'Beat introuvable' }, { status: 404 });
-    }
-
-    const fileUrl = beat.master_url;
-    if (!fileUrl) {
-      return NextResponse.json({ error: 'Fichier non disponible pour le téléchargement' }, { status: 404 });
-    }
-
-    return NextResponse.redirect(fileUrl);
-
-  } catch (error) {
-    console.error('Erreur lors du téléchargement:', error);
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
-  }
+// ⚠️ Cette route est désactivée : elle permettait de télécharger le fichier master
+// de n'importe quel beat sans aucune vérification d'achat.
+// Utilisez désormais /api/download?token=... (voir lib/downloadToken.ts).
+export async function GET() {
+  return NextResponse.json(
+    { error: 'Cette route a été désactivée pour des raisons de sécurité.' },
+    { status: 410 }
+  );
 }

@@ -61,7 +61,7 @@ export function useCart(licensesList: License[]) {
 
   const handleCheckout = (customerName: string, customerEmail: string, paymentMethod: "momo" | "paypal") => {
     if (!customerName || !customerEmail || cartItems.length === 0) return;
-    
+
     const itemsSummary = cartItems.map((item, idx) => {
       if (item.itemType === "beat") {
         return `${idx + 1}. Beat: ${item.beat?.title} (${item.license?.name}) - $${item.price}`;
@@ -69,7 +69,19 @@ export function useCart(licensesList: License[]) {
       return `${idx + 1}. Kit: ${item.kit?.title} - $${item.price}`;
     }).join("%0A");
 
-    // Envoyer l'email de confirmation (en arrière-plan, ne bloque pas)
+    // Enregistre la commande en base (statut PENDING) pour pouvoir la confirmer plus tard
+    // et générer automatiquement les liens de téléchargement sécurisés.
+    fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerName,
+        customerEmail,
+        items: cartItems,
+      }),
+    }).catch(() => {});
+
+    // Envoie l'email de confirmation (en arrière-plan, ne bloque pas)
     fetch('/api/order-confirmation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -93,7 +105,7 @@ export function useCart(licensesList: License[]) {
         `Envoyez le montant de $${cartTotal} via MTN/Moov au :%0A` +
         `📱 +${PHONE_WHATSAPP} (GBOSSA TOLIDJI ROLAND GAEL)%0A%0A` +
         `Après paiement, envoyez la capture d'écran ici. Vos fichiers seront livrés immédiatement après confirmation.`;
-      
+
       window.open(`https://wa.me/${PHONE_WHATSAPP}?text=${message}`, "_blank");
       setCartItems([]);
       window.location.href = "/thank-you";
