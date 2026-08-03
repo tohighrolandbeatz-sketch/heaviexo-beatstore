@@ -3,6 +3,24 @@ import { verifyDownloadToken } from '@/lib/downloadToken';
 import { saleRepository } from '@/lib/repositories/saleRepository';
 import { beatRepository } from '@/lib/repositories/beatRepository';
 
+function buildFileName(beat: any, fileUrl: string): string {
+  const sanitize = (str: string) =>
+    str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+  const parts = [
+    sanitize(beat.title || 'Beat'),
+    beat.musical_key ? sanitize(beat.musical_key) : '',
+    beat.bpm ? `${beat.bpm}BPM` : '',
+  ].filter(Boolean);
+
+  const ext = fileUrl.split('.').pop()?.split('?')[0] || 'mp3';
+  return `${parts.join('_')}.${ext}`;
+}
+
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token');
 
@@ -37,5 +55,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Fichier non disponible pour le moment.' }, { status: 404 });
   }
 
-  return NextResponse.redirect(fileUrl);
+  const fileResponse = await fetch(fileUrl);
+  if (!fileResponse.ok || !fileResponse.body) {
+    return NextResponse.json({ error: 'Erreur lors de la récupération du fichier.' }, { status: 502 });
+  }
+
+  const fileName = buildFileName(beat, fileUrl);
+
+  return new NextResponse(fileResponse.body, {
+    headers: {
+      'Content-Type': fileResponse.headers.get('content-type') || 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+    },
+  });
 }

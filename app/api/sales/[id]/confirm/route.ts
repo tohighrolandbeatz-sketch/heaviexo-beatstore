@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { saleRepository } from '@/lib/repositories/saleRepository';
 import { userRepository } from '@/lib/repositories/userRepository';
 import { beatRepository } from '@/lib/repositories/beatRepository';
 import { createDownloadToken } from '@/lib/downloadToken';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
 const EXPIRATION_MS = 1000 * 60 * 60 * 48; // liens valables 48h
 const SITE_URL = 'https://heaviexo-beatstore.vercel.app';
 
@@ -48,8 +54,8 @@ export async function PATCH(
       ? links.map((l) => `<p style="margin:10px 0;"><a href="${l.url}" style="color:#C66B3D; font-weight:bold; text-decoration:none;">⬇ ${l.label}</a></p>`).join('')
       : '<p style="color:#888;">Aucun fichier disponible pour le moment — contactez-nous.</p>';
 
-    await resend.emails.send({
-      from: 'HeavieXo Beats <onboarding@resend.dev>',
+    await transporter.sendMail({
+      from: `HeavieXo Beats <${process.env.GMAIL_USER}>`,
       to: user.email,
       subject: `Vos fichiers sont prêts - ${beat.title}`,
       html: `

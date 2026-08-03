@@ -27,7 +27,7 @@ if (typeof window !== 'undefined') {
 let tagAudio: HTMLAudioElement | null = null;
 let tagAudioUrl: string | null = null;
 let tagIntervalId: ReturnType<typeof setInterval> | null = null;
-const TAG_INTERVAL_MS = 12000; // le tag revient toutes les 12 secondes
+const TAG_INTERVAL_MS = 20000; // le tag revient toutes les 20 secondes
 
 function ensureTagAudio() {
   if (typeof window === 'undefined' || !tagAudioUrl) return;
@@ -50,9 +50,10 @@ function startTagLoop() {
   if (!tagAudioUrl) return;
   ensureTagAudio();
   stopTagLoop();
-  tagAudio?.play().catch(() => {});
+  // Le premier tag attend le premier intervalle complet — il ne joue jamais
+  // avant que l'audio principal soit confirmé "playing" (voir l'event ci-dessous).
   tagIntervalId = setInterval(() => {
-    if (!tagAudio) return;
+    if (!tagAudio || globalAudio?.paused) return;
     tagAudio.currentTime = 0;
     tagAudio.play().catch(() => {});
   }, TAG_INTERVAL_MS);
@@ -104,6 +105,14 @@ function attachAudioListeners() {
 
   audio.addEventListener('timeupdate', () => setStore({ currentTime: audio.currentTime }));
   audio.addEventListener('loadedmetadata', () => setStore({ duration: audio.duration }));
+
+  // Ne démarre la boucle du tag QUE quand l'audio principal joue vraiment
+  // (chargement réseau terminé et son audible) — évite le tag qui joue
+  // "dans le vide" pendant que le fichier charge encore.
+  audio.addEventListener('playing', () => startTagLoop());
+  audio.addEventListener('pause', () => stopTagLoop());
+  audio.addEventListener('waiting', () => stopTagLoop()); // rebuffering
+
   audio.addEventListener('ended', () => {
     setStore({ isPlaying: false });
     stopTagLoop();
@@ -123,11 +132,9 @@ export function usePlayer() {
       // Même beat : toggle play/pause (continue au lieu de relancer)
       if (audio.paused) {
         audio.play();
-        startTagLoop();
         setStore({ isPlaying: true });
       } else {
         audio.pause();
-        stopTagLoop();
         setStore({ isPlaying: false });
       }
     } else {
@@ -136,7 +143,6 @@ export function usePlayer() {
       audio.currentTime = 0;
       audio.src = beat.previewMp3;
       audio.play().catch(() => {});
-      startTagLoop();
       setStore({ beat, isPlaying: true, currentTime: 0, duration: 0 });
     }
   }, []);
@@ -150,18 +156,15 @@ export function usePlayer() {
     if (!audio) return;
     if (audio.paused) {
       audio.play();
-      startTagLoop();
       setStore({ isPlaying: true });
     } else {
       audio.pause();
-      stopTagLoop();
       setStore({ isPlaying: false });
     }
   }, [play]);
 
   const pause = useCallback(() => {
     globalAudio?.pause();
-    stopTagLoop();
     setStore({ isPlaying: false });
   }, []);
 
@@ -197,4 +200,3 @@ export function usePlayer() {
     setOnEnd,
   };
 }
-
